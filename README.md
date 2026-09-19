@@ -1,9 +1,8 @@
 # Snakemake workflow: `noHiC`
 
 [![Snakemake](https://img.shields.io/badge/snakemake-≥8.0.0-brightgreen.svg)](https://snakemake.github.io)
+[![Tests](https://github.com/andyngh/noHiC-Snakemake/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/andyngh/noHiC-Snakemake/actions?query=branch%3Amain+workflow%3ATests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-![noHiC logo](https://github.com/andyngh/noHiC-Snakemake/tree/main/logo/noHiC_logo1.png)
 
 **noHiC** is a reference-guided genome assembly and evaluation workflow for long-read
 data (PacBio HiFi/CLR, ONT) that does **not** require Hi-C data. Instead of chromatin
@@ -107,7 +106,7 @@ started from any working directory.
 ## Quick start
 
 ```bash
-git clone https://github.com/<owner>/noHiC-Snakemake.git
+git clone https://github.com/andyngh/noHiC-Snakemake.git
 cd noHiC-Snakemake
 
 # 1. edit the configuration
