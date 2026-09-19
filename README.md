@@ -3,7 +3,7 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥8.0.0-brightgreen.svg)](https://snakemake.github.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-![noHiC logo](https://github.com/andyngh/noHiC-Snakemake/logo/tree/main/noHiC_logo1.png)
+![noHiC logo](https://github.com/andyngh/noHiC-Snakemake/tree/main/logo/noHiC_logo1.png)
 
 **noHiC** is a reference-guided genome assembly and evaluation workflow for long-read
 data (PacBio HiFi/CLR, ONT) that does **not** require Hi-C data. Instead of chromatin
