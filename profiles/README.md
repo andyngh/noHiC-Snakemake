@@ -1,17 +1,49 @@
-The `profiles/` directory can contain any number of subdirectories, each containing a `config.yaml` file with a [workflow-specific profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles):
+# Workflow profiles
 
-`profiles/<specific_profile_name>/config.yaml`
+A [workflow profile](https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles)
+is a `config.yaml` holding default command-line arguments for this workflow. Each
+subdirectory here is one profile.
 
-The profile `profiles/default/config.yaml` will automatically be used by snakemake whenever you don't provide a workflow-specific profile via `--workflow-profile`.
-This means that any resources or other (command line) arguments specified there, will implicitly be used when running this workflow.
-Thus, as a workflow developer, only put configurations there that you expect to work in most environments, but which the users might want to tweak.
-And for rule-specific resource setting, preferably provide generally applicable settings right in the rule definition, if necessary via [dynamic resource](https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#dynamic-resources) specification---users can always override those in a profile, if they need to.
+| Profile | When it is used | What it does |
+|---|---|---|
+| [`default/`](default/config.yaml) | **Automatically**, whenever no `--workflow-profile` is given | Supplies `--configfile config/nohic.yaml` and a few safe defaults for long-running jobs |
+| [`slurm/`](slurm/config.yaml) | `snakemake --workflow-profile profiles/slurm` | Same, plus the SLURM executor for the evaluation stage |
 
-For any more specific profiles, use separate and clearly named subdirectories.
-For example use `profiles/slurm/config.yaml` for a slurm-specific profile, or even something like `profiles/slurm_uni_xyz/config.yaml` for a particular institutional slurm compute cluster.
+Two things to keep in mind:
 
-It is also good practice to add clear documentation comments for each entry in a (workflow) profile.
-This should explain the respective entry, indicate what kind of values can be used and why a particular value or setting were chosen.
-To this end, it is often helpful to provide links to relevant documentation pages, either from snakemake, a snakemake plugin or a specific cluster environment.
+- **`default/` is not merged with a profile you name explicitly.** `--workflow-profile
+  profiles/slurm` *replaces* it, which is why `slurm/config.yaml` repeats the general
+  settings. Use `--workflow-profile none` to switch profiles off completely — then you
+  must pass `--configfile config/nohic.yaml` yourself, or the workflow aborts on the
+  `configfile: "nohic.yaml"` line in `workflow/Snakefile`.
+- **A workflow profile is not the place for cluster resources.** For noHiC, the memory,
+  partition, account and wall time of the queued rules live in the `eval.slurm` section
+  of `config/nohic.yaml`, and the eval sub-workflow turns them into Snakemake
+  `resources`. A profile only decides *how* jobs are executed (executor, job count,
+  latency), not how big they are.
 
-In general, we welcome pull requests for 3rd-party workflows you are working with to include such a profile for your specific compute environment.
+## Adding a profile for your cluster
+
+Copy `slurm/` to a clearly named directory — `profiles/slurm_uni_xyz/` for an
+institutional setup — and adjust it there rather than editing the shipped profiles.
+Useful keys:
+
+```yaml
+executor: slurm
+jobs: 50                       # max jobs in the queue at once
+cores: 50                      # cores available to local (non-submitted) rules
+default-resources:
+  slurm_partition: "long"      # applies only to rules that set no partition themselves
+  runtime: 1440
+latency-wait: 60
+keep-going: true
+```
+
+Add a comment to every entry explaining what it is for and why the value was chosen —
+future you, and anyone porting the workflow to another cluster, will need it.
+
+Other executors work the same way: install the matching
+[executor plugin](https://snakemake.github.io/snakemake-plugin-catalog/) and set
+`executor:` accordingly. Note that only the evaluation stage is submitted; the other four
+stages are registered as local rules by `workflow/Snakefile` and always run on the
+machine that runs Snakemake.

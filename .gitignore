@@ -1,12 +1,59 @@
-results/**
-resources/**
-logs/**
-.snakemake
-.snakemake/**
-.test/results/*
-workflow/notebooks/.ipynb_checkpoints/**
+# Snakemake internals
+.snakemake/
+.snakemake-*
+
+# Smoke-test placeholders and outputs (see .test/setup.sh)
+.test/reads.fastq.gz
+.test/graph.gbz
+.test/graph.hapl
+.test/donor.fa
+.test/contigs.fa
+.test/adapters.fa
+.test/organelles.fa
+.test/kraken2_db/
+.test/env/
+.test/results/
+.test/config/no-*.yaml
+.test/*.txt
+
+# Workflow outputs. Stage directories are named in config/nohic.yaml, so keep real
+# results outside the repository; these patterns catch the common cases.
+results/
+resources/
+logs/
+Resources/
+*.done
+report.zip
+dag.svg
+
+# Large data that should never be committed
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.bam.csi
+*.bam.bai
+*.sam
+*.paf
+*.kff
+*.gbz
+*.hapl
+*.fa
+*.fasta
+*.fna
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# R / Python leftovers
+__pycache__/
+*.pyc
 **/.Rhistory
-**/*.Rproj
-**/.Rproj.user/**
 **/.RData
 **/Rplots.pdf
+**/.Rproj.user/

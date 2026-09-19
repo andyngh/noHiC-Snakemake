@@ -1,0 +1,31 @@
+# Default workflow profile for noHiC.
+#
+# Snakemake picks this file up automatically whenever the workflow is run without an
+# explicit --workflow-profile, so the settings here apply to every plain
+# `snakemake --cores N` call from the repository root.
+#
+# Keep only settings that are sensible in *any* environment here; anything
+# site-specific belongs in a profile of its own (see ../slurm/config.yaml).
+# Disable it entirely with `--workflow-profile none`.
+
+# The master Snakefile contains `configfile: "nohic.yaml"`, which Snakemake resolves
+# relative to the working directory and which therefore does not exist at the repository
+# root. Supplying the real config here makes that line harmless and saves typing
+# --configfile on every invocation.
+configfile: config/nohic.yaml
+
+# Echo the command line of every job. The rules also write their commands to their log
+# files, but having them on screen makes a failing run much easier to follow.
+printshellcmds: true
+
+# noHiC jobs are long (CRAQ, Inspector, TGS-GapCloser can run for hours). If a run is
+# interrupted, resume it instead of refusing to start.
+rerun-incomplete: true
+
+# Only re-run a step when its input is genuinely newer, not because a code or parameter
+# change was detected. Without this, editing a comment in a rule would invalidate days of
+# compute. Remove it if you want Snakemake's full provenance tracking.
+rerun-triggers: mtime
+
+# Tolerate slow shared filesystems: outputs of a finished job may take a moment to appear.
+latency-wait: 30

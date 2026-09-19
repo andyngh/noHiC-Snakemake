@@ -1,0 +1,38 @@
+# SLURM workflow profile for noHiC.
+#
+#   pip install snakemake-executor-plugin-slurm
+#   snakemake --workflow-profile profiles/slurm --jobs 20
+#
+# Only the evaluation stage is submitted to the cluster: the master Snakefile registers
+# every rule of refpick, refpolish, clean and asm as a local rule, and the cheap eval
+# rules are local too. The per-rule memory, partition, account and wall time of the
+# queued eval rules come from the `eval.slurm` block of config/nohic.yaml, NOT from this
+# file - so set `eval: use_slurm: "yes"` there as well, otherwise the eval jobs are
+# submitted without any resource requests.
+#
+# A profile given with --workflow-profile replaces profiles/default entirely, so the
+# generally useful settings are repeated here.
+
+configfile: config/nohic.yaml
+
+executor: slurm
+
+# Maximum number of eval jobs queued at the same time. The heavy rules are independent,
+# so this can be as high as your allocation allows.
+jobs: 20
+
+# Local rules (all of refpick/refpolish/clean/asm) run on the submitting machine and
+# share these cores - give the login or head node enough, or start this inside an
+# interactive allocation.
+cores: 50
+
+printshellcmds: true
+rerun-incomplete: true
+rerun-triggers: mtime
+
+# Cluster filesystems need more slack than a local disk before a job's output is visible.
+latency-wait: 60
+
+# Do not abandon the whole run because one evaluation tool failed; the other metrics are
+# still worth having.
+keep-going: true

@@ -1,11 +1,19 @@
-# configuration of display in snakemake workflow catalog: https://snakemake.github.io/snakemake-workflow-catalog
+# Configuration of the display in the Snakemake workflow catalog:
+# https://snakemake.github.io/snakemake-workflow-catalog
 
 usage:
   mandatory-flags:
-    desc: # describe your flags here in a few sentences
-    flags: # put your flags here
+    desc: >-
+      The workflow needs its configuration file on the command line. Running it from the
+      repository root picks that up automatically through profiles/default; from anywhere
+      else, pass it explicitly. All five stages are switched on and off in the "stages:"
+      section of that file.
+    flags: --configfile config/nohic.yaml
   software-stack-deployment:
-    conda: true # whether pipeline works with '--sdm conda'
-    apptainer: true # whether pipeline works with '--sdm apptainer/singularity'
-    apptainer+conda: true # whether pipeline works with '--sdm conda apptainer/singularity'
-    report: true # whether creation of reports using 'snakemake --report report.zip' is supported
+    # noHiC expects one pre-built virtual environment holding every tool, given as
+    # "nohic_env_path" in the config and activated by each sub-workflow through
+    # shell.prefix. It does not define per-rule conda environments or containers.
+    conda: false
+    apptainer: false
+    apptainer+conda: false
+    report: false

@@ -1,37 +1,353 @@
-# Main entrypoint of the workflow.
-# Please follow the best practices:
-# https://snakemake.readthedocs.io/en/stable/snakefiles/best_practices.html,
-# in particular regarding the standardized folder structure mentioned there.
+from snakemake.utils import min_version
+min_version("8.0")
+import os
+import re
 
+configfile: "nohic.yaml"
 
-# load configuration
-# -----------------------------------------------------
-configfile: "config/config.yaml"
+_stages = config.get("stages", {}) # this will have the value of an empty dictionary if the "stages" section in yaml file is removed. Otherwise --> crashed
 
+#-------------------------------#
+# 0. Helper functions and paths #
+#-------------------------------#
 
-# load rules
-# -----------------------------------------------------
-include: "rules/common.smk"
-include: "rules/process_reads.smk"
+def _run(stage: str):
+    '''
+    Take the switch value (yes/no) of an assembly stage in the _stages dict.
+    If the switch value is not "yes", "y", "1", "true", or "on" return False.
+    If a stage in the yaml file is deleted, the default switch of "no" is taken.
+    '''
+    return str(_stages.get(stage, "no")).strip().lower() in ("yes", "y", "1", "true", "on")
 
+def _is_empty(v):
+    '''
+    This function is to check if a key in the yaml config file is empty.
+    '''
+    return v is None or (isinstance(v, str) and v.strip() == "")
 
-# optional messages, log and error handling
-# -----------------------------------------------------
-onstart:
-    print("\n--- Analysis started ---\n")
+def _check_switch(value, obj):
+    '''
+    This function returns True if a switch in a config file is "yes" and False if it is "no".
+    '''
+    switch = str(value).strip().lower()
+    if switch in {"yes", "y", "1", "on", "true"}:
+        return True
+    if switch in {"no", "n", "0", "off", "false"}:
+        return False
+    raise WorkflowError(f"ERROR: {obj} needs the value of 'yes' or 'no'. Got: {switch} !")
 
+# The .smk files of the sub-workflows live in the "rules" directory next to this
+# Snakefile (the standard Snakemake repository layout).  "workflow.basedir" is the
+# directory of this file, so the workflow can be started from any working directory.
 
-onsuccess:
-    print("\n--- Workflow finished! ---\n")
+RULES_DIR = os.path.join(workflow.basedir, "rules")
 
+SUB_SNAKEFILES = {
+    "refpick":   "nohic-refpick.c.smk",
+    "refpolish": "nohic-refpolish.c.smk",
+    "clean":     "nohic-clean.c.smk",
+    "asm":       "nohic-asm.c.smk",
+    "eval":      "nohic-eval.slurm.c.smk",
+}
 
-onerror:
-    print("\n--- An error occurred! ---\n")
+def _smk(stage: str):
+    '''
+    Return the path to the .smk file of a sub-workflow and check that the file is there.
+    '''
+    _path = os.path.join(RULES_DIR, SUB_SNAKEFILES[stage])
+    if not os.path.exists(_path):
+        raise WorkflowError(f"ERROR: the .smk file of the stage '{stage}' was not found at: {_path}")
+    return _path
 
+def _run_locally(prefix: str):
+    '''
+    Mark every rule imported from a sub-workflow as a local rule, so that it runs on
+    the machine that runs this Snakefile instead of being submitted as its own
+    cluster job when snakemake is started with "--executor slurm".
+    Only nohic-eval is set up for SLURM (see "use_slurm" in its config section).
+    '''
+    _rules = [r.name for r in workflow.rules if r.name.startswith(f"{prefix}_")]
+    if _rules:
+        workflow.localrules(*_rules)
 
-# target rules
-# -----------------------------------------------------
+#-------------------------------------------------------------#
+# 1. Put global params to configs of each sub-workflow        #
+#-------------------------------------------------------------#
+
+# Mappings showing which params in a sub-workflow config can be taken from "global"
+# format: "sub-workflow params": "global params"
+
+_global = config.get("global", {})
+
+PARAM_MAPPINGS = {
+    "refpick": {
+        "nohic_env_path": "nohic_env_path",
+        "seq_file": "reads"
+    },
+    "refpolish": {
+        "nohic_env_path": "nohic_env_path",
+        "reads": "reads"
+    },
+    "clean": {
+        "nohic_env_path": "nohic_env_path"
+    },
+    "asm": {
+        "nohic_env_path": "nohic_env_path",
+        "reads": "reads",
+        "sequencing_platform": "sequencing_platform",
+        "sequencing_coverage": "sequencing_coverage"
+    },
+    "eval": {
+        "nohic_env_path": "nohic_env_path",
+        "reads": "reads",
+        "sequencing_platform": "sequencing_platform",
+        "sequencing_coverage": "sequencing_coverage"
+    }
+}
+
+for _stg, _mapping in PARAM_MAPPINGS.items(): # loop through both keys and values of PARAM_MAPPINGS (_stg: key, _mapping: value - a dict)
+    # if an assembly stage is not run --> move to next stage (e.g., refpolish: "no" --> move to "clean")
+    if not _run(_stg):
+        continue
+    # Error if an assembly stage is missing from the config file
+    if _stg not in config:
+        raise WorkflowError(f"ERROR: the workflow stage: {_stg} is not mentioned in the config file!")
+    # _cur_sec is a dict holding the keys and values of the current assembly stage. what happens to _cur_sec happens to config
+    _cur_sec = config.setdefault(_stg, {})
+
+    for _param, _value in _mapping.items():
+        # Manually putting values in empty keys of each stage will win against the global keys.
+        # A key that is missing from the stage section counts as empty.
+        if not _is_empty(_cur_sec.get(_param)):
+            continue
+        # Error if a global key is missing
+        if _value not in _global:
+            raise WorkflowError(f"ERROR: the key {_value} needs to be in the global section of the config file!")
+        # if a key in the current assembly stage is empty --> take the corresponding value from global
+        # (e.g., in refpick, if seq_file: "" --> refpick["seq_file"] = _global["reads"])
+        _cur_sec[_param] = _global[_value]
+
+#-------------------------------------#
+# 2. Set config for each sub-workflow #
+#-------------------------------------#
+
+STAGES = ("refpick", "refpolish", "clean", "asm", "eval")
+
+CFG = {_stg: config[_stg] for _stg in STAGES if _run(_stg)}
+
+#-----------------------------------------------#
+# 3. Chain the inputs and outputs of the stages #
+#-----------------------------------------------#
+
+#--------3.1. Set the final targets for the sub-workflows------#
+
+def _refpick_target():
+    if _check_switch(CFG["refpick"]["patch_synref"], "refpick: patched_synref: "):
+        _patched_synref = f"{CFG['refpick']['kmc_out_dir']}/{CFG['refpick']['prefix']}.synref.patched.fasta"
+        return _patched_synref
+
+    _synref = f"{CFG['refpick']['kmc_out_dir']}/{CFG['refpick']['prefix']}.synref.fa"
+    return _synref
+
+def _refpolish_target():
+    # normalised the same way as in nohic-refpolish.c.smk, so that both agree on the file name
+    if str(CFG["refpolish"]["polish_tool"]).strip().lower() == "hypo":
+        _polished_ref = f"{CFG['refpolish']['out_dir']}/{CFG['refpolish']['prefix']}.hypo.fasta"
+        return _polished_ref
+    _polished_ref = f"{CFG['refpolish']['out_dir']}/{CFG['refpolish']['prefix']}.racon.fasta"
+    return _polished_ref
+
+def _clean_target():
+    _contig_file = CFG["clean"]["contig_assembly"]
+    _sample = re.sub(r"\.(fa|fasta|fna)$", "", os.path.basename(_contig_file))
+    _clean_asm = f"{CFG['clean']['out_dir']}/4_assembly_decontamination/{_sample}.pure.fa"
+    return _clean_asm
+
+def _asm_target():
+    _out_dir, _prefix = CFG["asm"]["out_dir"], CFG["asm"]["out_prefix"]
+    _name = _prefix
+    if _check_switch(CFG["asm"]["run_craq"], "asm: run_craq: "):
+        _name += ".craq"
+    if _check_switch(CFG["asm"]["run_inspector"], "asm: run_inspector: "):
+        _name += ".inspector"
+    if _check_switch(CFG["asm"]["run_ragtag_correct"], "asm: run_ragtag_correct"):
+        _name += ".rt_corr"
+    _name += ".scf"
+    if _check_switch(CFG["asm"]["run_gap_closing"], "asm: run_gap_closing: "):
+        _final_asm = f"{_out_dir}/5_Gap_closing/{_name}.tgs.fa"
+    else:
+        _final_asm = f"{_out_dir}/4_Scaffolding/{_name}.fa"
+    return _final_asm
+
+def _eval_target():
+    _compl_marker = f"{CFG['eval']['out_dir']}/pipeline.done"
+    return _compl_marker
+
+#---------3.2. Chain the inputs and outputs of the sub-workflows-------#
+
+# By defaults:
+# - refpolish takes input ref genome from refpick.
+# - asm takes input ref genome from refpolish/refpick and ctg assembly from clean.
+# - eval takes input assembly from asm and ref genome from refpolish.
+# A value can only be chained from a stage that is switched on; otherwise it has to
+# be given by hand and the check in section 4 reports it as missing.
+
+if _run("refpolish") and _is_empty(CFG["refpolish"].get("synref")) and _run("refpick"):
+    CFG["refpolish"]["synref"] = _refpick_target()
+
+if _run("asm"):
+    if _is_empty(CFG["asm"].get("contigs")) and _run("clean"):
+        CFG["asm"]["contigs"] = _clean_target()
+    if _is_empty(CFG["asm"].get("reference_genome")) and _run("refpolish"):
+        CFG["asm"]["reference_genome"] = _refpolish_target()
+    if _is_empty(CFG["asm"].get("reference_genome")) and _run("refpick") and not _run("refpolish"):
+        CFG["asm"]["reference_genome"] = _refpick_target()
+
+if _run("eval"):
+    if _is_empty(CFG["eval"].get("assembly")) and _run("asm"):
+        CFG["eval"]["assembly"] = _asm_target()
+    if _is_empty(CFG["eval"].get("reference_genome")) and _run("refpolish"):
+        CFG["eval"]["reference_genome"] = _refpolish_target()
+    if _is_empty(CFG["eval"].get("reference_genome")) and _run("refpick") and not _run("refpolish"):
+        CFG["eval"]["reference_genome"] = _refpick_target()
+
+# -----------------------------------------------------------------------------#
+#  4. Checks that give a readable message instead of an error deep inside a    #
+#     sub-workflow                                                             #
+# -----------------------------------------------------------------------------#
+
+REQUIRED = {
+    "refpick":   ["nohic_env_path", "seq_file", "kmer_length", "memory", "kmc_mode",
+                  "prefix", "kmc_out_dir", "kmc_threads", "gbz", "hapl", "vg_threads",
+                  "patch_synref"],
+    "refpolish": ["nohic_env_path", "reads", "synref", "mapping_preset", "threads",
+                  "polish_tool", "out_dir", "prefix"],
+    "clean":     ["nohic_env_path", "contig_assembly", "out_dir", "adapters",
+                  "adapter_detection_thread", "kraken2_db", "kraken2_thread",
+                  "kraken2_memory_mapping", "taxonomic_group", "org_ctg_identification"],
+    "asm":       ["nohic_env_path", "contigs", "reference_genome", "out_dir",
+                  "out_prefix", "run_craq", "run_inspector", "run_ragtag_correct",
+                  "ragtag_threads", "run_gap_closing"],
+    "eval":      ["nohic_env_path", "assembly", "out_dir", "contiguity_evaluation_tool",
+                  "gene_space_compl_eval_tool", "run_craq", "run_inspector", "run_viz"],
+}
+
+# keys that are only needed for certain tool choices
+if _run("asm") and any(_check_switch(CFG["asm"][k], f"asm: {k}") for k in
+                      ("run_craq", "run_inspector", "run_ragtag_correct", "run_gap_closing")):
+    REQUIRED["asm"].append("reads")
+
+if _run("eval"):
+    _eval_cfg = CFG["eval"]
+    _quast = str(_eval_cfg["contiguity_evaluation_tool"]).strip().lower() == "quast"
+    if _quast or _check_switch(_eval_cfg["run_craq"], "eval: run_craq") \
+              or _check_switch(_eval_cfg["run_inspector"], "eval: run_inspector"):
+        REQUIRED["eval"].append("reads")
+    if _quast or _check_switch(_eval_cfg["run_viz"], "eval: run_viz"):
+        REQUIRED["eval"].append("reference_genome")
+
+_missing = [f"  {s}: {k}"
+            for s in STAGES if _run(s)
+            for k in REQUIRED[s] if _is_empty(CFG[s].get(k))]
+if _missing:
+    raise WorkflowError(
+        "ERROR: the following keys are missing from the config file.\n"
+        "Keys that are normally filled in by an earlier stage have to be given\n"
+        "by hand when that stage is switched off in 'stages:'.\n" + "\n".join(_missing))
+
+# Every sub-workflow calls shell.prefix() to activate its environment, and that
+# prefix is global - the one parsed last would be used by every job.  All
+# enabled stages therefore have to agree on one environment.
+_envs = {CFG[s]["nohic_env_path"] for s in STAGES if _run(s)}
+if len(_envs) > 1:
+    raise WorkflowError("ERROR: all stages have to use the same 'nohic_env_path', "
+                        f"but several were given: {sorted(_envs)}")
+
+# Two stages writing into the same directory would overwrite each other's
+# marker files (asm and eval both create "{out_dir}/pipeline.done").
+_out_dirs = {}
+for _stage in STAGES:
+    if _run(_stage):
+        _dir = CFG[_stage]["kmc_out_dir"] if _stage == "refpick" else CFG[_stage]["out_dir"]
+        _out_dirs.setdefault(os.path.normpath(_dir), []).append(_stage)
+_clashes = {d: s for d, s in _out_dirs.items() if len(s) > 1}
+if _clashes:
+    raise WorkflowError("ERROR: every stage needs its own output directory, but "
+                        f"these are shared: {_clashes}")
+
+#---------------------------------------------------#
+# 5. Set the final target for this master Snakefile #
+#---------------------------------------------------#
+
+TARGETS = []
+
+if _run("refpick"):
+    TARGETS.append(_refpick_target())
+if _run("refpolish"):
+    TARGETS.append(_refpolish_target())
+if _run("clean"):
+    TARGETS.append(_clean_target())
+if _run("asm"):
+    TARGETS.append(_asm_target())
+if _run("eval"):
+    TARGETS.append(_eval_target())
+
 rule all:
-    default_target: True
-    input:
-        "results/multiqc/multiqc_report.html",
+    input: TARGETS
+
+#---------------------------------------#
+# 6. Choose which assembly stage to run #
+#---------------------------------------#
+
+
+if _run("refpick"):
+    module refpick_wf:
+        snakefile: _smk("refpick")
+        config: CFG["refpick"]
+    use rule * from refpick_wf as refpick_*
+    _run_locally("refpick")
+
+if _run("refpolish"):
+    module refpolish_wf:
+        snakefile: _smk("refpolish")
+        config: CFG["refpolish"]
+    use rule * from refpolish_wf as refpolish_*
+    _run_locally("refpolish")
+
+if _run("clean"):
+    module clean_wf:
+        snakefile: _smk("clean")
+        config: CFG["clean"]
+    use rule * from clean_wf as clean_*
+    _run_locally("clean")
+
+if _run("asm"):
+    module asm_wf:
+        snakefile: _smk("asm")
+        config: CFG["asm"]
+    use rule * from asm_wf as asm_*
+    _run_locally("asm")
+
+if _run("eval"):
+    module eval_wf:
+        snakefile: _smk("eval")
+        config: CFG["eval"]
+    use rule * from eval_wf as eval_*
+
+    if _check_switch(CFG["eval"].get("use_slurm", "no"), "eval: use_slurm: "):
+        # Set the local rules for nohic-eval:
+            # list all possible local rules and add the eval_ prefix
+        _eval_localrules = [f"eval_{r}" for r in (
+            "scaffold_length_calculations", "dot_plot_generation", "pipeline_done",
+            "contiguity_skipped", "gene_space_skipped", "craq_skipped",
+            "inspector_skipped", "viz_skipped")]
+            # list the rules that are actually run in the current workflow
+        _defined_rules = {r.name for r in workflow.rules}
+            # Filter out the eval rules that are not run
+        _eval_localrules = [r for r in _eval_localrules if r in _defined_rules]
+            # Set the eval rules to be run as local rules, if _eval_localrules is not empty.
+        if _eval_localrules:
+            workflow.localrules(*_eval_localrules)
+    else:
+        # nohic-eval is not queued either, so every one of its rules runs locally
+        _run_locally("eval")

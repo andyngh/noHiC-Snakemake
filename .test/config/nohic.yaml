@@ -1,0 +1,97 @@
+# =============================================================================
+#  Smoke-test configuration - NOT a template for real runs.
+# =============================================================================
+#  This config exists so that continuous integration can build the complete job
+#  graph of all five stages without any data or tools being present.  Every path
+#  below points at an empty placeholder file created by ../setup.sh, and the
+#  workflow is only ever run with --dry-run against it.
+#
+#  For a real run, copy config/nohic.yaml instead and read config/README.md.
+# =============================================================================
+
+stages:
+  refpick:   "yes"
+  refpolish: "yes"
+  clean:     "yes"
+  asm:       "yes"
+  eval:      "yes"
+
+global:
+  nohic_env_path: "env"
+  reads: "reads.fastq.gz"
+  sequencing_platform: "hifi"
+  sequencing_coverage: 20
+
+refpick:
+  seq_file: ""
+  kmer_length: 29
+  memory: 4
+  kmc_mode: "fq"
+  prefix: "test"
+  kmc_out_dir: "results/refpick"
+  kmc_threads: 2
+  gbz: "graph.gbz"
+  hapl: "graph.hapl"
+  vg_threads: 2
+  patch_synref: "yes"
+  donor_genome: "donor.fa"
+  patch_threads: 2
+
+refpolish:
+  synref: ""
+  mapping_preset: "map-hifi"
+  threads: 2
+  polish_tool: "hypo"
+  coverage: 20
+  genome_size: "1m"
+  out_dir: "results/refpolish"
+  prefix: "test.synref.patched"
+
+clean:
+  contig_assembly: "contigs.fa"
+  out_dir: "results/clean"
+  adapters: "adapters.fa"
+  adapter_detection_thread: 2
+  kraken2_db: "kraken2_db"
+  kraken2_thread: 2
+  kraken2_memory_mapping: "no"
+  taxonomic_group: "Viridiplantae"
+  org_ctg_identification: "yes"
+  reference_organellar_sequences: "organelles.fa"
+  blastn_thread: 2
+
+asm:
+  contigs: ""
+  reference_genome: ""
+  out_dir: "results/asm"
+  out_prefix: "test"
+  run_craq: "yes"
+  craq_threads: 2
+  ignore_het: "no"
+  run_inspector: "yes"
+  inspector_threads: 2
+  run_ragtag_correct: "yes"
+  ragtag_threads: 2
+  preset: "luck"
+  run_gap_closing: "yes"
+  gap_closing_threads: 2
+
+eval:
+  assembly: ""
+  reference_genome: ""
+  out_dir: "results/eval"
+  contiguity_evaluation_tool: "quast"
+  contiguity_threads: 2
+  gene_space_compl_eval_tool: "compleasm"
+  gene_space_compl_eval_threads: 2
+  lineage: "poales"
+  odb: "odb12"
+  busco_out_prefix: "test"
+  run_craq: "yes"
+  craq_threads: 2
+  run_inspector: "yes"
+  inspector_threads: 2
+  run_viz: "yes"
+  minimap2_preset: "asm5"
+  viz_threads: 2
+  use_slurm: "no"

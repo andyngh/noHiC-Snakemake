@@ -1,0 +1,157 @@
+# =============================================================================
+#  nohic.yaml - the only config file needed by nohic.smk
+# =============================================================================
+#  snakemake -s nohic.smk --configfile nohic.yaml --cores 50
+#
+#  Every section below is handed to one sub-workflow, using the key names that
+#  workflow already expects (nohic-refpick.yaml, nohic-refpolish.yaml,
+#  nohic-clean.cfg.yaml, nohic-asm.yaml, nohic-eval.slurm.yaml).  Anything
+#  under "global:" is copied into the stages that need it; a value written
+#  inside a stage section always wins over the global one.
+#
+#  Keys marked [chained] are filled in automatically with the result of the
+#  stage before.  Fill them in by hand only when you switch that stage off in
+#  "stages:", or when you want to use a different file.
+# =============================================================================
+
+# --- which stages to run -----------------------------------------------------
+stages:
+  refpick:   "yes"     # nohic-refpick.c.smk     - build the synthetic reference
+  refpolish: "yes"     # nohic-refpolish.c.smk   - polish it
+  clean:     "yes"     # nohic-clean.c.smk       - adapter check + decontamination
+  asm:       "yes"     # nohic-asm.c.smk         - correction/scaffolding/gap closing
+  eval:      "yes"     # nohic-eval.slurm.c.smk  - evaluation
+
+# --- values used by more than one stage --------------------------------------
+global:
+  nohic_env_path: "/vol/agcpgl/anguyen/sorghum/pipelines/final_test/envs/noHiC"
+  reads: "SB14122_GT-239_WGS-Rv-0061.hifi_reads.fastq.gz"   # error-corrected long reads
+  sequencing_platform: "hifi"     # clr / hifi / ont / corrected_clr / corrected_ont
+  sequencing_coverage: 20
+
+# --- 1. reference picking (nohic-refpick.c.smk) ------------------------------
+refpick:
+  seq_file: ""                    # [chained] defaults to global: reads
+  kmer_length: 29
+  memory: 200                      # KMC memory in GB
+  kmc_mode: "fq"                  # "fq" for a fastq file, "fm" for a fasta file
+  prefix: "SB14122"
+  kmc_out_dir: "SB14122.refpick"
+  kmc_threads: 100
+  gbz: "sorghum_sub_pgMC.full.gbz"
+  hapl: "sorghum_sub_pgMC.full.hapl"
+  vg_threads: 100
+  patch_synref: "yes"
+  donor_genome: "GCA_033546955.1_ASM3354695v1_genomic.renamed.ed1.fa"
+  patch_threads: 100
+  # patched_synref: ""            # only needed if your GPatch does not write
+  #                               # {kmc_out_dir}/{prefix}.synref.patched.fasta
+
+# --- 2. reference polishing (nohic-refpolish.c.smk) --------------------------
+refpolish:
+  synref: ""                      # [chained] synthetic reference from refpick
+  mapping_preset: "map-hifi"      # map-pb / map-hifi / map-ont / map-iclr
+  threads: 100
+  polish_tool: "hypo"             # "hypo" or "racon"
+  coverage: 20                   # hypo only
+  genome_size: "720m"             # hypo only
+  out_dir: "SB14122.refpolish"
+  prefix: "SB14122.synref.patched"
+
+# --- 3. assembly cleaning (nohic-clean.c.smk) --------------------------------
+clean:
+  contig_assembly: "SB14122_GT-239_WGS-Rv-0061.hifi_reads.bp.p_ctg.ra.fa"
+  out_dir: "SB14122.clean"
+  adapters: "PacBio_adapter.fa"
+  adapter_detection_thread: 10
+  kraken2_db: "/vol/agcpgl/anguyen/sorghum/pipelines/final_test/kraken2_db/pluspfp16_k2_db"   # /dev/shm/... if kraken2_memory_mapping is "yes"
+  kraken2_thread: 100
+  kraken2_memory_mapping: "no"
+  taxonomic_group: "Viridiplantae"
+  org_ctg_identification: "yes"
+  reference_organellar_sequences: "mt_cl_blast_db/mt.cl.sbi.fasta"
+  blastn_thread: 100
+
+# --- 4. assembly (nohic-asm.c.smk) -------------------------------------------
+asm:
+  contigs: ""                     # [chained] decontaminated contigs from clean
+  reference_genome: ""            # [chained] polished reference from refpolish
+  out_dir: "SB14122.asm"
+  out_prefix: "SB14122"
+  run_craq: "yes"
+  craq_threads: 95
+  ignore_het: "no"
+  run_inspector: "yes"
+  inspector_threads: 100
+  run_ragtag_correct: "yes"
+  ragtag_threads: 100
+  preset: "luck"                  # draft / luck / standard / aggressive / raw
+  run_gap_closing: "yes"
+  gap_closing_threads: 100
+
+# --- 5. evaluation (nohic-eval.slurm.c.smk) ----------------------------------
+eval:
+  assembly: ""                    # [chained] final assembly from asm
+  reference_genome: "GCA_033546955.1_ASM3354695v1_genomic.renamed.ed1.fa"            # [chained] polished reference from refpolish
+  out_dir: "SB14122.eval"
+  contiguity_evaluation_tool: "quast"    # gfastats / quast / no
+  contiguity_threads: 100
+  gene_space_compl_eval_tool: "compleasm"   # compleasm / busco / no
+  gene_space_compl_eval_threads: 100
+  lineage: "poales"
+  odb: "odb12"
+  busco_out_prefix: "SB14122"     # only used with busco
+  run_craq: "yes"
+  craq_threads: 95
+  run_inspector: "yes"
+  inspector_threads: 100
+  run_viz: "yes"
+  minimap2_preset: "asm5"
+  viz_threads: 100
+
+  # SLURM settings of the evaluation workflow (as in nohic-eval.slurm.yaml).
+  # They only apply to the rules of this stage; see the notes in nohic.smk for
+  # running the other stages on the cluster as well.
+  use_slurm: "yes"
+  slurm:
+    default:
+      memory: "250G"              # 32000, "32000M", "32G", ...
+      partition: "bcf"            # "" lets the SLURM site default decide
+      account: "bcf"              # "" if your cluster does not use accounts
+      wall_time: "24h"               # 120, "4h", "2d"; "" = partition default
+    rules:
+      GFAstats:
+        memory: "5G"
+        partition: "idle"
+        account: ""
+        wall_time: ""
+      QUAST:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      busco:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      compleasm:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      craq_based_evaluation:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      inspector_based_evaluation:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      assembly_to_reference_mapping:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
