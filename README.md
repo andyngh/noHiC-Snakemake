@@ -1,5 +1,9 @@
 # Snakemake workflow: `noHiC`
 
+<p align="center">
+  <img src="logo/noHiC_logo1.png" alt="noHiC logo" width="360">
+</p>
+
 [![Snakemake](https://img.shields.io/badge/snakemake-≥8.0.0-brightgreen.svg)](https://snakemake.github.io)
 [![Tests](https://github.com/andyngh/noHiC-Snakemake/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/andyngh/noHiC-Snakemake/actions?query=branch%3Amain+workflow%3ATests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -63,6 +67,7 @@ noHiC-Snakemake/
 │   │   ├── nohic-eval.slurm.c.smk
 │   │   └── README.md                  # what each sub-workflow does, rule by rule
 │   └── scripts/README.md              # helper scripts the workflow expects on $PATH
+├── logo/noHiC_logo1.png               # used by this README
 ├── .github/workflows/                 # continuous integration
 ├── LICENSE
 └── README.md
