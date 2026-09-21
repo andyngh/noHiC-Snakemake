@@ -9,8 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **noHiC** is a reference-guided genome assembly and evaluation workflow for long-read
-data (PacBio HiFi/CLR, ONT) that does **not** require Hi-C data. Instead of chromatin
-contact information, it builds a *synthetic reference* from a pangenome graph by
+data (PacBio HiFi/CLR, ONT). It builds a *synthetic reference genome* (synref) from a pangenome graph by
 sampling the haplotype that best matches the k-mer content of the sample's own reads,
 polishes that reference with the same reads, and uses it to correct and scaffold the
 contigs.
@@ -20,15 +19,14 @@ independently, all driven from a single configuration file:
 
 | # | Stage       | Sub-workflow                  | What it does |
 |---|-------------|-------------------------------|--------------|
-| 1 | `refpick`   | `nohic-refpick.c.smk`         | Builds a synthetic reference: KMC3 k-mer counting → `vg haplotypes` sampling → `vg paths` FASTA extraction, optionally patched against a donor genome with GPatch |
-| 2 | `refpolish` | `nohic-refpolish.c.smk`       | Polishes the synthetic reference with the sample's reads using HyPo or Racon |
-| 3 | `clean`     | `nohic-clean.c.smk`           | Adapter screening, Kraken2/TaxonKit decontamination and organellar-contig removal from the contig assembly |
-| 4 | `asm`       | `nohic-asm.c.smk`             | Contig correction (CRAQ, Inspector, RagTag correct), reference-guided scaffolding (RagTag scaffold) and gap closing (TGS-GapCloser) |
-| 5 | `eval`      | `nohic-eval.slurm.c.smk`      | Contiguity (gfastats/QUAST), gene-space completeness (BUSCO/compleasm), CRAQ and Inspector QV metrics, and an assembly-vs-reference dot plot |
+| 1 | `refpick`   | `nohic-refpick.c.smk`         | Builds the synref and optionally patches the gaps in the generated synref using the sequence from a high-quality donor genome. |
+| 2 | `refpolish` | `nohic-refpolish.c.smk`       | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon |
+| 3 | `clean`     | `nohic-clean.c.smk`           | Adapter screening, Kraken2/TaxonKit-based decontamination, and optional organellar-contig removal from the contig assembly |
+| 4 | `asm`       | `nohic-asm.c.smk`             | Contig correction (CRAQ, Inspector, and RagTag correct), reference-guided scaffolding (RagTag scaffold), and gap closing (TGS-GapCloser) |
+| 5 | `eval`      | `nohic-eval.slurm.c.smk`      | Accesses the scaffolded assembly based on different aspects, including contiguity, gene-space completeness, and structural correctness (based on QV, AQIs, and dot plot) |
 
 The stages are chained automatically: `refpick` → `refpolish` → `asm`, `clean` → `asm`,
-and `asm` → `eval`. Any stage you switch off simply means its input has to be given by
-hand in the config.
+and `asm` → `eval`. Any stage you switch off simply means its input has to be manually specify in the config file.
 
 ---
 
