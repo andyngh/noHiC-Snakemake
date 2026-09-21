@@ -4,7 +4,8 @@
 #  Command:                                                                   #
 #  snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 #
 #             --configfile nohic.yaml --cores <thread_num>                    #
-#  If you want to use SLURM for nohic-eval:                                   #
+#  If you want to use SLURM for nohic-eval, put the following command in an   #
+#  .sbatch file.                                                              #
 #  snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 #
 #            --configfile nohic.yaml --executor slurm \                       #
 #            --jobs 5 --local-cores ${SLURM_CPUS_PER_TASK}                    #
