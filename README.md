@@ -77,32 +77,51 @@ started from any working directory.
 
 ## Requirements
 
-- **Snakemake ≥ 8.0** (the master workflow declares `min_version("8.0")` and uses the
-  `module` / `use rule` syntax).
-- **One Python virtual environment containing every tool used by the enabled stages.**
-  noHiC does not use per-rule conda environments. Each sub-workflow calls
-  `shell.prefix(f"source {nohic_env_path}/bin/activate; ")`, so every rule runs inside
-  that one environment. Because `shell.prefix` is global in Snakemake, **all enabled
-  stages must point at the same `nohic_env_path`** — the master workflow checks this and
-  aborts with a clear message if they differ.
+Install Snakemake (>= 8.0.0), snakemake-executor-plugin-slurm, and conda-pack as follows.
 
-  Tools expected in that environment, by stage:
+```
+conda install -c bioconda snakemake snakemake-executor-plugin-slurm
 
-  | Stage | Tools |
-  |-------|-------|
-  | `refpick` | `kmc`, `vg`, `minimap2`, `samtools`, `GPatch`, `Asm_Decomposing.sh` |
-  | `refpolish` | `minimap2`, `samtools`, `hypo` and/or `racon` |
-  | `clean` | `seqkit`, `kraken2`, `taxonkit`, `blastn`, `makeblastdb`, `filter_blast.py`, `wget`, `tar` |
-  | `asm` | `craq`, `inspector.py`, `inspector-correct.py`, `ragtag.py`, `seqkit`, `tgsgapcloser` |
-  | `eval` | `gfastats` and/or `quast`, `busco` or `compleasm`, `craq`, `inspector.py`, `minimap2`, `bioawk`, `paf2dotplot.R` |
+conda install -c conda-forge conda-pack
+```
 
-  `compleasm` is the one exception: the eval stage activates it from a **sibling**
-  environment, `<parent of nohic_env_path>/compleasm`. If `nohic_env_path` is
-  `/path/envs/noHiC`, compleasm is expected at `/path/envs/compleasm`.
+Download and unpack conda environments for noHiC.
 
-- **Reference data** you provide yourself: the pangenome graph (`.gbz` + `.hapl`), an
-  optional donor genome for patching, a Kraken2 database, an adapter FASTA and (for
-  organellar screening) a FASTA of reference mitochondrial/chloroplast sequences.
+```bash
+# Create directories for the required environments
+
+mkdir /path/to/noHiC-Snakemake/envs/noHiC
+
+mkdir /path/to/noHiC-Snakemake/envs/compleasm
+
+# Download the environments
+
+wget noHiC.tar.gz
+
+wget compleasm.tar.gz
+
+# Decompress the enviroments
+
+tar -xzf noHiC.tar.gz -C /path/to/noHiC-Snakemake/envs/noHiC
+
+tar -xzf compleasm.tar.gz -C /path/to/noHiC-Snakemake/envs/compleasm
+
+# Unpack the environments
+
+source /path/to/noHiC-Snakemake/envs/noHiC/bin/activate
+
+conda-unpack
+
+source /path/to/noHiC-Snakemake/envs/noHiC/bin/deactivate
+
+source /path/to/noHiC-Snakemake/envs/compleasm/bin/activate
+
+conda-unpack
+
+source /path/to/noHiC-Snakemake/envs/compleasm/bin/deactivate
+```
+
+After running all commands, you can copy `/path/to/noHiC-Snakemake/envs/noHiC` to the `nohic_env_path` key of `noHiC-Snakemake/config/nohic.yaml`
 
 ## Quick start
 
