@@ -81,7 +81,6 @@ Install Snakemake (>= 8.0.0), snakemake-executor-plugin-slurm, and conda-pack as
 
 ```
 conda install -c bioconda snakemake snakemake-executor-plugin-slurm
-
 conda install -c conda-forge conda-pack
 ```
 
@@ -91,33 +90,25 @@ Download and unpack conda environments for noHiC.
 # Create directories for the required environments
 
 mkdir /path/to/noHiC-Snakemake/envs/noHiC
-
 mkdir /path/to/noHiC-Snakemake/envs/compleasm
 
 # Download the environments
 
 wget noHiC.tar.gz
-
 wget compleasm.tar.gz
 
 # Decompress the enviroments
 
 tar -xzf noHiC.tar.gz -C /path/to/noHiC-Snakemake/envs/noHiC
-
 tar -xzf compleasm.tar.gz -C /path/to/noHiC-Snakemake/envs/compleasm
 
 # Unpack the environments
 
 source /path/to/noHiC-Snakemake/envs/noHiC/bin/activate
-
 conda-unpack
-
 source /path/to/noHiC-Snakemake/envs/noHiC/bin/deactivate
-
 source /path/to/noHiC-Snakemake/envs/compleasm/bin/activate
-
 conda-unpack
-
 source /path/to/noHiC-Snakemake/envs/compleasm/bin/deactivate
 ```
 
