@@ -17,7 +17,7 @@ contigs.
 The workflow is made of five sub-workflows that can be switched on and off
 independently, all driven from a single configuration file:
 
-| # | Stage       | Sub-workflow                  | What it does |
+| # | Stage       | Sub-workflow                  | Computational Tasks |
 |---|-------------|-------------------------------|--------------|
 | 1 | `refpick`   | `nohic-refpick.c.smk`         | Builds the synref and optionally patches the gaps in the generated synref using the sequence from a high-quality donor genome. |
 | 2 | `refpolish` | `nohic-refpolish.c.smk`       | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon |
