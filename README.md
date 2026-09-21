@@ -49,32 +49,30 @@ and `asm` → `eval`. Any stage you switch off simply means its input has to be 
 ```
 noHiC-Snakemake/
 ├── config/
-│   ├── nohic.yaml                     # the single config file for the whole workflow
-│   └── README.md                      # reference for every configuration key
+│   ├── nohic.yaml                     # the config file for the whole noHiC workflow
+│   └── README.md                      # Explanations for every configuration key
 ├── profiles/
 │   ├── default/config.yaml            # picked up automatically; points at config/nohic.yaml
-│   ├── slurm/config.yaml              # cluster profile for the evaluation stage
+│   ├── slurm/config.yaml              # cluster profile for the evaluation stage (nohic-eval)
 │   └── README.md
 ├── workflow/
-│   ├── Snakefile                      # master workflow (the former nohic.smk)
-│   ├── rules/
+│   ├── Snakefile                      # The noHiC workflow to be run
+│   ├── rules/                         # The directory containing noHiC's sub-workflows
 │   │   ├── nohic-refpick.c.smk
 │   │   ├── nohic-refpolish.c.smk
 │   │   ├── nohic-clean.c.smk
 │   │   ├── nohic-asm.c.smk
 │   │   ├── nohic-eval.slurm.c.smk
-│   │   └── README.md                  # what each sub-workflow does, rule by rule
+│   │   └── README.md                  # Explanations for each sub-workflows
 │   └── scripts/README.md              # helper scripts the workflow expects on $PATH
-├── logo/noHiC_logo1.png               # used by this README
-├── .github/workflows/                 # continuous integration
+├── logo/noHiC_logo1.png               
+├── .github/workflows/                 
 ├── LICENSE
 └── README.md
 ```
 
-This is the [standard Snakemake repository
-layout](https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html#distribution-and-reproducibility).
 `workflow/Snakefile` locates its sub-workflows through `workflow.basedir`, so the five
-`*.c.smk` files **must stay in `workflow/rules/`** — but the workflow itself can be
+`*.c.smk` files **must stay in `workflow/rules/`**, but the workflow itself can be
 started from any working directory.
 
 ## Requirements
