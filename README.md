@@ -86,7 +86,7 @@ conda create -n snakemake -c bioconda -c conda-forge snakemake snakemake-executo
 Clone this repository.
 
 ```bash
-git clone 
+git clone https://github.com/andyngh/noHiC-Snakemake.git
 ```
 
 Download and unpack conda environments for noHiC.
