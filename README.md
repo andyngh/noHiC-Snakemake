@@ -94,8 +94,8 @@ Download and unpack conda environments for noHiC.
 ```bash
 # Create directories for the required environments
 
-mkdir /path/to/noHiC-Snakemake/envs/noHiC
-mkdir /path/to/noHiC-Snakemake/envs/compleasm
+mkdir -p /path/to/noHiC-Snakemake/envs/noHiC
+mkdir -p /path/to/noHiC-Snakemake/envs/compleasm
 
 # Download the environments
 
