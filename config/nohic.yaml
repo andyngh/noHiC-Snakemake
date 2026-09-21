@@ -1,8 +1,13 @@
 # ============================================================================#
 #                     nohic.yaml - noHiC config file                          #
 # ============================================================================#
+#  Command:                                                                   #
 #  snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 #
 #             --configfile nohic.yaml --cores <thread_num>                    #
+#  If you want to use SLURM for nohic-eval:                                   #
+#  snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 #
+#            --configfile nohic.yaml --executor slurm \                       #
+#            --jobs 5 --local-cores ${SLURM_CPUS_PER_TASK}                    #
 #                                                                             #
 #  Every section below is handed to one sub-workflow. Anything                #
 #  under "global:" is copied into the stages that need it; a value written    #
