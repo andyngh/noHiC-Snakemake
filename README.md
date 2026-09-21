@@ -83,6 +83,12 @@ Install Snakemake (>= 8.0.0), snakemake-executor-plugin-slurm, and conda-pack as
 conda create -n snakemake -c bioconda -c conda-forge snakemake snakemake-executor-plugin-slurm conda-pack
 ```
 
+Clone this repository.
+
+```bash
+git clone 
+```
+
 Download and unpack conda environments for noHiC.
 
 ```bash
