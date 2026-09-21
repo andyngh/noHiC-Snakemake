@@ -99,8 +99,8 @@ mkdir /path/to/noHiC-Snakemake/envs/compleasm
 
 # Download the environments
 
-wget noHiC.tar.gz
-wget compleasm.tar.gz
+wget https://zenodo.org/records/22880706/files/noHiC.tar.gz
+wget https://zenodo.org/records/22880706/files/compleasm.tar.gz
 
 # Decompress the enviroments
 
