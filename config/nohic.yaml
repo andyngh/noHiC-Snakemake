@@ -1,124 +1,123 @@
-# =============================================================================
-#  nohic.yaml - the only config file needed by nohic.smk
-# =============================================================================
-#  snakemake -s nohic.smk --configfile nohic.yaml --cores 50
-#
-#  Every section below is handed to one sub-workflow, using the key names that
-#  workflow already expects (nohic-refpick.yaml, nohic-refpolish.yaml,
-#  nohic-clean.cfg.yaml, nohic-asm.yaml, nohic-eval.slurm.yaml).  Anything
-#  under "global:" is copied into the stages that need it; a value written
-#  inside a stage section always wins over the global one.
-#
-#  Keys marked [chained] are filled in automatically with the result of the
-#  stage before.  Fill them in by hand only when you switch that stage off in
-#  "stages:", or when you want to use a different file.
-# =============================================================================
+# ============================================================================#
+#                     nohic.yaml - noHiC config file                          #
+# ============================================================================#
+#  snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 #
+#             --configfile nohic.yaml --cores <thread_num>                    #
+#                                                                             #
+#  Every section below is handed to one sub-workflow. Anything                #
+#  under "global:" is copied into the stages that need it; a value written    #
+#  inside a stage section always wins over the global one.                    #
+#                                                                             #
+#  Keys marked [chained] are filled in automatically with the result of the   #
+#  stage before. They can also be manually filled.                            #
+#  Output directory for each stage MUST be different                          #
+# ============================================================================#
 
-# --- which stages to run -----------------------------------------------------
+# --- 1. Choose the stages to run --------------------------------------------#
+# Fill in "yes" or "no".
 stages:
-  refpick:   "yes"     # nohic-refpick.c.smk     - build the synthetic reference
-  refpolish: "yes"     # nohic-refpolish.c.smk   - polish it
-  clean:     "yes"     # nohic-clean.c.smk       - adapter check + decontamination
-  asm:       "yes"     # nohic-asm.c.smk         - correction/scaffolding/gap closing
-  eval:      "yes"     # nohic-eval.slurm.c.smk  - evaluation
+  refpick:   "yes"     # Build (and patch) a synref
+  refpolish: "yes"     # Polish a synref or a real reference genome 
+  clean:     "yes"     # Check the presence of adapters in contigs and contaminant contig removal
+  asm:       "yes"     # Contig correction, scaffolding, and gap closing
+  eval:      "yes"     # Assembly evaluation
 
-# --- values used by more than one stage --------------------------------------
+# --- 2. Set the global parameters -------------------------------------------#
 global:
-  nohic_env_path: "/vol/agcpgl/anguyen/sorghum/pipelines/final_test/envs/noHiC"
-  reads: "SB14122_GT-239_WGS-Rv-0061.hifi_reads.fastq.gz"   # error-corrected long reads
-  sequencing_platform: "hifi"     # clr / hifi / ont / corrected_clr / corrected_ont
-  sequencing_coverage: 20
+  nohic_env_path: "/path/to/envs/noHiC" # Path to the downloaded noHiC environment
+  reads: "hifi_reads.fastq.gz"    # Path to a fastq file containing error-corrected long reads
+  sequencing_platform: "hifi"     # Fill in "clr" / "hifi" / "ont" / "corrected_clr" / "corrected_ont"
+  sequencing_coverage: 20         # Fill in the sequencing coverage (int)
 
-# --- 1. reference picking (nohic-refpick.c.smk) ------------------------------
+# --- 3. Synref generation from a pangenome graph (nohic-refpick) ------------#
 refpick:
-  seq_file: ""                    # [chained] defaults to global: reads
-  kmer_length: 29
-  memory: 200                      # KMC memory in GB
-  kmc_mode: "fq"                  # "fq" for a fastq file, "fm" for a fasta file
-  prefix: "SB14122"
-  kmc_out_dir: "SB14122.refpick"
-  kmc_threads: 100
-  gbz: "sorghum_sub_pgMC.full.gbz"
-  hapl: "sorghum_sub_pgMC.full.hapl"
-  vg_threads: 100
-  patch_synref: "yes"
-  donor_genome: "GCA_033546955.1_ASM3354695v1_genomic.renamed.ed1.fa"
-  patch_threads: 100
-  # patched_synref: ""            # only needed if your GPatch does not write
-  #                               # {kmc_out_dir}/{prefix}.synref.patched.fasta
+  seq_file: ""                    # [chained] Take the fastq file from "global: reads: " by default.
+  kmer_length: 29                 # set the kmer length (bp) (int)
+  memory: 200                     # KMC memory in GB (int)
+  kmc_mode: "fq"                  # Fill in "fq" if seq_file is a fastq file and "fm" if it is a fasta file
+  prefix: "PREFIX"                # Set outputs' prefix 
+  kmc_out_dir: "Refpick.outdir"   # Name the output directory
+  kmc_threads: 20                 # Set the thread number for KMC-based kmer counting (int)
+  gbz: "graph.full.gbz"           # Path to a pangenome graph in GBZ format
+  hapl: "graph.full.hapl"         # Path to the haplotype information (.hapl) file of the pangenome graph
+  vg_threads: 20                  # Set the thread number for haplotype sampling and synref generation (int)
+  patch_synref: "yes"             # Fill in "yes" to patch gaps in the synref or "no" to turn this step off.
+  donor_genome: "donor_genome.fa" # Path to a high-quality reference genome (aka. donor genome) for synref patching
+  patch_threads: 20               # Set the thread number for patching the synref (int)
 
-# --- 2. reference polishing (nohic-refpolish.c.smk) --------------------------
+# --- 4. Reference polishing (nohic-refpolish) -----------------------------------#
 refpolish:
-  synref: ""                      # [chained] synthetic reference from refpick
-  mapping_preset: "map-hifi"      # map-pb / map-hifi / map-ont / map-iclr
-  threads: 100
-  polish_tool: "hypo"             # "hypo" or "racon"
-  coverage: 20                   # hypo only
-  genome_size: "720m"             # hypo only
-  out_dir: "SB14122.refpolish"
-  prefix: "SB14122.synref.patched"
+  synref: ""                      # [chained] By default, take the synref generated by nohic-refpick
+  mapping_preset: "map-hifi"      # Fill in "map-pb" / "map-hifi" / "map-ont" / "map-iclr"
+  threads: 20                     # Set the thread number (int)
+  polish_tool: "hypo"             # Fill in "hypo" or "racon"
+  coverage: 20                    # Fill in the sequencing coverage if polish_tool: "hypo"
+  genome_size: "720m"             # Fill in the estimated genome size if polish_tool: "hypo" (e.g., "720m", "1g")
+  out_dir: "Refpolish.outdir"     # Name the output directory
+  prefix: "target_genome.synref.patched" # Set the output prefix 
 
-# --- 3. assembly cleaning (nohic-clean.c.smk) --------------------------------
+# --- 5. Contig assembly cleaning (nohic-clean) --------------------------------#
 clean:
-  contig_assembly: "SB14122_GT-239_WGS-Rv-0061.hifi_reads.bp.p_ctg.ra.fa"
-  out_dir: "SB14122.clean"
-  adapters: "PacBio_adapter.fa"
-  adapter_detection_thread: 10
-  kraken2_db: "/vol/agcpgl/anguyen/sorghum/pipelines/final_test/kraken2_db/pluspfp16_k2_db"   # /dev/shm/... if kraken2_memory_mapping is "yes"
-  kraken2_thread: 100
-  kraken2_memory_mapping: "no"
-  taxonomic_group: "Viridiplantae"
-  org_ctg_identification: "yes"
-  reference_organellar_sequences: "mt_cl_blast_db/mt.cl.sbi.fasta"
-  blastn_thread: 100
+  contig_assembly: "target_ctg_asm.fa" # Path to the target contig assembly to decontaminate 
+  out_dir: "target_asm.clean"          # Set the name of the output directory 
+  adapters: "PacBio_adapter.fa"        # Path to a fasta file containing adapter sequences
+  adapter_detection_thread: 10         # Set the thread number for the adapter checking step (int)
+  kraken2_db: "/path/to/kraken2/db"    # Path to a downloaded Kraken2 database. Fill in /dev/shm if you can copy the k2d files to this directory and set kraken2_memory_mapping: "yes"
+  kraken2_thread: 20                   # Set the thread number for Kraken2-based contig taxonomic classification (int)
+  kraken2_memory_mapping: "no"         # Fill in "yes" if you want to use memory mapping mode or "no" to turn this mode off.
+  taxonomic_group: "Viridiplantae"     # Fill in the target taxonomic group from which contigs should be collected
+  org_ctg_identification: "yes"        # Fill in "yes" to remove cp- and mtDNA contigs or "no" to include organellar DNA in the assembly 
+  reference_organellar_sequences: "reference_cp_mt_DNA.fa" # Path to a fasta file containing reference cp- and mtDNA sequences
+  blastn_thread: 20                    # Set the thread number for BLASTn-based organellar contig removal.
 
-# --- 4. assembly (nohic-asm.c.smk) -------------------------------------------
+# --- 6. Reference-guided contig correction and scaffolding (nohic-asm) -----------------------#
 asm:
-  contigs: ""                     # [chained] decontaminated contigs from clean
-  reference_genome: ""            # [chained] polished reference from refpolish
-  out_dir: "SB14122.asm"
-  out_prefix: "SB14122"
-  run_craq: "yes"
-  craq_threads: 95
-  ignore_het: "no"
-  run_inspector: "yes"
-  inspector_threads: 100
-  run_ragtag_correct: "yes"
-  ragtag_threads: 100
-  preset: "luck"                  # draft / luck / standard / aggressive / raw
-  run_gap_closing: "yes"
-  gap_closing_threads: 100
+  contigs: ""                     # [chained] By default, take decontaminated contigs from nohic-clean
+  reference_genome: ""            # [chained] By default, take the synref/polished synref from nohic-refpick/refpolish
+  out_dir: "asm.outdir"           # Name the output directory
+  out_prefix: "target_genome_prefix" # Set the output prefix
+  run_craq: "yes"                 # Fill in "yes" to enable CRAQ-based chimeric contig breaking or "no" to turn this step off.
+  craq_threads: 15                # Set the thread number for CRAQ (int). Note: the number for this step should be 5-6 fewer threads compared to other steps of nohic-asm. 
+  ignore_het: "no"                # Fill in "yes" to set the CRAQ's minimum clip rate to 0.55 
+  run_inspector: "yes"            # Fill in "yes" to enable Inspector-based contig correction or "no" to turn this step off.
+  inspector_threads: 20           # Fill in the thread number for Inspector (int)
+  run_ragtag_correct: "yes"       # Fill in "yes" to enable reference-guided contig correction by RagTag or "no" to turn this step off.
+  ragtag_threads: 20              # Fill in the thread number for RagTag-based correction and scaffolding (int)
+  preset: "luck"                  # Choose RagTag-based correction preset, including "draft" / "luck" / "standard" / "aggressive" / "raw" (default: "luck")
+  run_gap_closing: "yes"          # Fill in "yes" to enable gap closing or "no" to turn this step off.
+  gap_closing_threads: 20         # Fill in the thread number for gap closing (int)
 
-# --- 5. evaluation (nohic-eval.slurm.c.smk) ----------------------------------
+# --- 7. Assembly evaluation (nohic-eval) -----------------------------------------#
 eval:
-  assembly: ""                    # [chained] final assembly from asm
-  reference_genome: "GCA_033546955.1_ASM3354695v1_genomic.renamed.ed1.fa"            # [chained] polished reference from refpolish
-  out_dir: "SB14122.eval"
-  contiguity_evaluation_tool: "quast"    # gfastats / quast / no
-  contiguity_threads: 100
-  gene_space_compl_eval_tool: "compleasm"   # compleasm / busco / no
-  gene_space_compl_eval_threads: 100
-  lineage: "poales"
-  odb: "odb12"
-  busco_out_prefix: "SB14122"     # only used with busco
-  run_craq: "yes"
-  craq_threads: 95
-  run_inspector: "yes"
-  inspector_threads: 100
-  run_viz: "yes"
-  minimap2_preset: "asm5"
-  viz_threads: 100
+  assembly: ""                    # [chained] By default, take the final assembly from nohic-asm
+  reference_genome: ""            # [chained] By default, take the synref/polished synref from nohic-refpick/refpolish
+  out_dir: "eval.outdir"          # Name the output directory
+  contiguity_evaluation_tool: "quast"    # Choose the tool for contiguity evaluation ("gfastats", "quast", or "no" to turn the step off)
+  contiguity_threads: 20          # Set the thread number for contiguity evaluation (int)
+  gene_space_compl_eval_tool: "compleasm"   # Choose the tool for gene-space completeness evaluation ("compleasm", "busco", or "no" to turn the step off)
+  gene_space_compl_eval_threads: 20 # Set the thread number for gene-space completeness evaluation (int)
+  lineage: "embryophyta"            # Set the BUSCO lineage
+  odb: "odb12"                      # Set the version of BUSCO's OrthoDB
+  busco_out_prefix: "target_asm"    # Set the output prefix (only used with busco)
+  run_craq: "yes"                   # Fill in "yes" to calculate S- and R-AQI by CRAQ or "no" to turn this step off.
+  craq_threads: 15        # Set the thread number for CRAQ (int). Note: the number for this step should be 5-6 fewer threads compared to other steps of nohic-eval. 
+  run_inspector: "yes"    # Fill in "yes" to calculate QV by Inspector or "no" to turn this step off.
+  inspector_threads: 20   # Fill in the thread number for Inspector (int)
+  run_viz: "yes"          # Fill in "yes" to draw a dot plot showing mappings between the target and reference genome or "no" to turn this step off.
+  minimap2_preset: "asm5" # Set Minimap2 preset (can be "asm5", "asm10", "asm20")
+  viz_threads: 20         # Fill in the thread number for dot plot generation (int)
 
-  # SLURM settings of the evaluation workflow (as in nohic-eval.slurm.yaml).
-  # They only apply to the rules of this stage; see the notes in nohic.smk for
-  # running the other stages on the cluster as well.
-  use_slurm: "yes"
+  # SLURM settings for nohic-eval.
+  # They only apply to the steps of this stage.
+  # Since the evaluation steps of nohic-eval are independent, they will be sent to different nodes to be executed in parallel.
+  use_slurm: "no" # Fill in "yes" or "no"
   slurm:
     default:
-      memory: "250G"              # 32000, "32000M", "32G", ...
-      partition: "bcf"            # "" lets the SLURM site default decide
-      account: "bcf"              # "" if your cluster does not use accounts
-      wall_time: "24h"               # 120, "4h", "2d"; "" = partition default
+      memory: "250G"              # Set the memory requirement for SLURM jobs (e.g., "32000M" or "32G")
+      partition: "bcf"            # Set the SLURM partition. Leave it empty ("") to let the SLURM site default decide
+      account: "bcf"              # Set the SLURM account. "" if your cluster does not use accounts
+      wall_time: "24h"            # Set the wall time for each evaluation step (e.g., "4h", "2d"; "" = partition default)
+    # The SLURM settings above are for all evaluation steps. If you want different settings for particular steps you can use the keys below.
     rules:
       GFAstats:
         memory: "5G"
