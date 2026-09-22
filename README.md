@@ -120,43 +120,212 @@ conda activate snakemake
 
 After running all commands, you can copy `/path/to/noHiC-Snakemake/envs/noHiC` to the `nohic_env_path` key of `noHiC-Snakemake/config/nohic.yaml`
 
-## Quick start
+## Tutorial
+
+We will use the example files from the previous [noHiC](https://github.com/andyngh/noHiC/tree/main/example) repository for this tutorial. The target genome to scaffold is *A. thaliana* CAMA-C-2.
+
+**HiFi Reads Preparation**
+
+To prepare the HiFi reads for this tutorial, you will need to install [SRA Toolkit](https://anaconda.org/channels/bioconda/packages/sra-tools/overview) and download the prebuilt binary of [TGSFilter](https://github.com/HuiyangYu/TGSFilter/releases/tag/v1.10). 
 
 ```bash
-git clone https://github.com/andyngh/noHiC-Snakemake.git
-cd noHiC-Snakemake
-
-# 1. edit the configuration
-$EDITOR config/nohic.yaml
-
-# 2. dry run - shows the full job graph without executing anything
-snakemake -n --cores 50
-
-# 3. run
-snakemake --cores 50
+prefetch --max-size 200G ERR10084604
+fastq-dump --origfmt ./ERR10084604
+tgsfilter -i ERR10084604.fastq -o CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz -x hifi -t 24
 ```
 
-`profiles/default/config.yaml` is picked up automatically by Snakemake and supplies
-`--configfile config/nohic.yaml`, so you do not have to pass it every time. If you
-disable workflow profiles (`--workflow-profile none`) or run from somewhere else, pass
-it explicitly:
+**Download Kraken2 Database**
+
+For this tutorial, we will use the `PlusPFP-16` database (16GB). If you have more memory (e.g., > 250GB), you can download the `core_nt` database [here](https://benlangmead.github.io/aws-indexes/k2).
 
 ```bash
-snakemake --configfile config/nohic.yaml --cores 50
+wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_16_GB_20260626.tar.gz
+tar -xzf k2_pluspfp_16_GB_20260626.tar.gz
 ```
 
-> **Note.** The master workflow contains the line `configfile: "nohic.yaml"`, which
-> Snakemake resolves **relative to the working directory**. That file does not exist at
-> the repository root, which is harmless *as long as a config file is supplied on the
-> command line* (directly or through a profile) — Snakemake then uses the one you gave.
-> Running `snakemake` with no config file at all therefore fails with
-> `Workflow defines configfile nohic.yaml but it is not present`. Always keep the
-> `--configfile` flag, or the default profile that provides it.
+>**Note**
+>Check the instruction in the previous [noHiC](https://github.com/andyngh/noHiC/tree/main#32-nohic-cleansh-contaminant-contig-removal) repository, if you want to set `kraken2_memory_mapping: "yes"` in the config file.
 
-All relative paths inside `config/nohic.yaml` (reads, contigs, output directories, the
-pangenome graph, …) are resolved against the **working directory**, not against the
-repository. Either use absolute paths, or run Snakemake from the directory that holds
-your data with `--snakefile /path/to/noHiC-Snakemake/workflow/Snakefile`.
+**Execute the noHiC Workflow**
+
+```bash
+conda activate snakemake
+# Change to your working directory containing example A. thaliana input files (not the noHiC-Snakemake directory)  
+cd /path/to/your/working/directory
+```
+
+Edit the config file (`path/to/noHiC-Snakemake/config/nohic.yaml`) as follows before running the pipeline.
+
+```yaml
+# --- 1. Choose the stages to run --------------------------------------------#
+# Fill in "yes" or "no".
+stages:
+  refpick:   "yes"     # Build (and patch) a synref
+  refpolish: "yes"     # Polish a synref or a real reference genome 
+  clean:     "yes"     # Check the presence of adapters in contigs and contaminant contig removal
+  asm:       "yes"     # Contig correction, scaffolding, and gap closing
+  eval:      "yes"     # Assembly evaluation
+
+# --- 2. Set the global parameters -------------------------------------------#
+global:
+  nohic_env_path: "/path/to/noHiC-Snakemake/envs/noHiC" # Path to the downloaded noHiC environment
+  reads: "CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz"    # Path to a fastq file containing HiFi reads of CAMA-C-2
+  sequencing_platform: "hifi"
+  sequencing_coverage: 69
+
+# --- 3. Synref generation from a pangenome graph (nohic-refpick) ------------#
+refpick:
+  seq_file: ""                    # [chained] Take the fastq file from "global: reads: " by default.
+  kmer_length: 29                 # set the kmer length (bp) (int)
+  memory: 30                     # KMC memory in GB (int)
+  kmc_mode: "fq"                  # Fill in "fq" if seq_file is a fastq file and "fm" if it is a fasta file
+  prefix: "CAMA-C-2"                # Set outputs' prefix 
+  kmc_out_dir: "CAMA-C-2.refpick"   # Name the output directory
+  kmc_threads: 20                 # Set the thread number for KMC-based kmer counting (int)
+  gbz: "/path/to/arabidopsis_pgMC.full.gbz"           # Path to a pangenome graph in GBZ format
+  hapl: "/path/to/arabidopsis_pgMC.full.hapl"         # Path to the haplotype information (.hapl) file of the pangenome graph
+  vg_threads: 20                  # Set the thread number for haplotype sampling and synref generation (int)
+  patch_synref: "no"             # We will not patch the synref in this tutorial
+  donor_genome: "" 
+  patch_threads:                
+
+# --- 4. Reference polishing (nohic-refpolish) -----------------------------------#
+refpolish:
+  synref: ""                      # [chained] By default, take the synref generated by nohic-refpick
+  mapping_preset: "map-hifi"      # Fill in "map-pb" / "map-hifi" / "map-ont" / "map-iclr"
+  threads: 20                     # Set the thread number (int)
+  polish_tool: "hypo"             # Fill in "hypo" or "racon"
+  coverage: 69                    # Fill in the sequencing coverage if polish_tool: "hypo"
+  genome_size: "135m"             # Fill in the estimated genome size if polish_tool: "hypo" (e.g., "720m", "1g")
+  out_dir: "CAMA-C-2.refpolish"     # Name the output directory
+  prefix: "CAMA-C-2.synref" # Set the output prefix 
+
+# --- 5. Contig assembly cleaning (nohic-clean) --------------------------------#
+clean:
+  contig_assembly: "/path/to/CAMA-C-2.asm.bp.p_ctg.fa" # Path to the target contig assembly to decontaminate 
+  out_dir: "CAMA-C-2.clean"          # Set the name of the output directory 
+  adapters: "/path/to/PacBio_adapters.fa"        # Path to a fasta file containing adapter sequences
+  adapter_detection_thread: 10         # Set the thread number for the adapter checking step (int)
+  kraken2_db: "/path/to/pluspfp16_k2_db"    # Fill in /dev/shm if you can copy the k2d files to this directory and set kraken2_memory_mapping: "yes"
+  kraken2_thread: 20                   # Set the thread number for Kraken2-based contig taxonomic classification (int)
+  kraken2_memory_mapping: "no"         # Fill in "yes" if you want to use memory mapping mode or "no" to turn this mode off.
+  taxonomic_group: "Viridiplantae"     # Fill in the target taxonomic group from which contigs should be collected
+  org_ctg_identification: "yes"        # Fill in "yes" to remove cp- and mtDNA contigs or "no" to include organellar DNA in the assembly 
+  reference_organellar_sequences: "/path/to/mt.cl.fasta" # Path to a fasta file containing reference cp- and mtDNA sequences
+  blastn_thread: 20                    # Set the thread number for BLASTn-based organellar contig removal.
+
+# --- 6. Reference-guided contig correction and scaffolding (nohic-asm) -----------------------#
+asm:
+  contigs: ""                     # [chained] By default, take decontaminated contigs from nohic-clean
+  reference_genome: ""            # [chained] By default, take the polished synref from nohic-refpolish
+  out_dir: "CAMA-C-2.asm"           # Name the output directory
+  out_prefix: "CAMA-C-2" # Set the output prefix
+  run_craq: "yes"                 # Fill in "yes" to enable CRAQ-based chimeric contig breaking or "no" to turn this step off.
+  craq_threads: 15                # Note: the number for this step should be 5-6 fewer threads compared to other steps of nohic-asm. 
+  ignore_het: "no"                # Fill in "yes" to set the CRAQ's minimum clip rate to 0.55 
+  run_inspector: "yes"            # Fill in "yes" to enable Inspector-based contig correction or "no" to turn this step off.
+  inspector_threads: 20           # Fill in the thread number for Inspector (int)
+  run_ragtag_correct: "yes"       # Fill in "yes" to enable reference-guided contig correction by RagTag or "no" to turn this step off.
+  ragtag_threads: 20              # Fill in the thread number for RagTag-based correction and scaffolding (int)
+  preset: "luck"                  # Choose RagTag-based correction preset, including "draft" / "luck" / "standard" / "aggressive" / "raw" (default: "luck")
+  run_gap_closing: "yes"          # Fill in "yes" to enable gap closing or "no" to turn this step off.
+  gap_closing_threads: 20         # Fill in the thread number for gap closing (int)
+
+# --- 7. Assembly evaluation (nohic-eval) -----------------------------------------#
+eval:
+  assembly: ""                    # [chained] By default, take the final assembly from nohic-asm
+  reference_genome: "/path/to/GCA_946406975.1_CAMA-C-2.PacbioHiFiAssembly_genomic.ed.SELECTED.fa"            
+  out_dir: "CAMA-C-2.eval"          # Name the output directory
+  contiguity_evaluation_tool: "quast"    # Choose the tool for contiguity evaluation ("gfastats", "quast", or "no" to turn the step off)
+  contiguity_threads: 20          # Set the thread number for contiguity evaluation (int)
+  gene_space_compl_eval_tool: "busco"   # Choose the tool for gene-space completeness evaluation ("compleasm", "busco", or "no" to turn the step off)
+  gene_space_compl_eval_threads: 20 # Set the thread number for gene-space completeness evaluation (int)
+  lineage: "brassicales"            # Set the BUSCO lineage
+  odb: "odb12"                      # Set the version of BUSCO's OrthoDB
+  busco_out_prefix: "CAMA-C-2"    # Set the output prefix (only used with busco)
+  run_craq: "yes"                   # Fill in "yes" to calculate S- and R-AQI by CRAQ or "no" to turn this step off.
+  craq_threads: 15        #  Note: the number for this step should be 5-6 fewer threads compared to other steps of nohic-eval. 
+  run_inspector: "yes"    # Fill in "yes" to calculate QV by Inspector or "no" to turn this step off.
+  inspector_threads: 20   # Fill in the thread number for Inspector (int)
+  run_viz: "yes"          # Fill in "yes" to draw a dot plot showing mappings between the target and reference genome or "no" to turn this step off.
+  minimap2_preset: "asm5" # Set Minimap2 preset (can be "asm5", "asm10", "asm20")
+  viz_threads: 20         # Fill in the thread number for dot plot generation (int)
+
+  # SLURM settings for nohic-eval.
+  # They only apply to the steps of this stage.
+  # Since the evaluation steps of nohic-eval are independent, they will be sent to different nodes to be executed in parallel.
+  use_slurm: "yes" # Fill in "no" if you don't want to use SLURM
+  slurm:
+    default:
+      memory: "250G"              # Set your own memory requirement for SLURM jobs (e.g., "32000M" or "32G")
+      partition: "bcf"            # Set your own SLURM partition. Leave it empty ("") to let the SLURM site default decide
+      account: "bcf"              # Set your own SLURM account. "" if your cluster does not use accounts
+      wall_time: "24h"            # Set your own wall time for each evaluation step (e.g., "4h", "2d"; "" = partition default)
+    # The SLURM settings above are for all evaluation steps. If you want different settings for particular steps you can use the keys below.
+    rules:
+      GFAstats:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      QUAST:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      busco:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      compleasm:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      craq_based_evaluation:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      inspector_based_evaluation:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+      assembly_to_reference_mapping:
+        memory: ""
+        partition: ""
+        account: ""
+        wall_time: ""
+```
+
+```bash
+snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 
+             --configfile path/to/noHiC-Snakemake/config/nohic.yaml \
+             --cores <thread_num>
+```
+
+If you want to use SLURM to run the steps of `nohic-eval` in parallel by sending the jobs in different nodes, prepare a `.sbatch` script as follows.
+
+```bash
+#! /bin/bash
+#SBATCH --mem=<memory>
+#SBATCH --cpus-per-task=<thread_num>
+#SBATCH --partition=<partition>
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=<email>
+
+# Note that the memory and thread number set in this sbatch script will be use for nohic-refpick, -refpolish, -clean, and -asm.
+# nohic-eval will send the jobs to different nodes with resource requirements set in the nohic.yaml file. 
+
+# Change to your working directory containing example A. thaliana input files (not the noHiC-Snakemake directory)  
+cd /path/to/your/working/directory
+# Run the pipeline
+snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
+          --configfile /path/to/noHiC-Snakemake/config/nohic.yaml \
+          --rerun-incomplete --executor slurm --jobs 5 --local-cores ${SLURM_CPUS_PER_TASK}
+```
 
 ### Useful invocations
 
