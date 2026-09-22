@@ -258,8 +258,8 @@ eval:
   slurm:
     default:
       memory: "250G"              # Set your own memory requirement for SLURM jobs (e.g., "32000M" or "32G")
-      partition: "bcf"            # Set your own SLURM partition. Leave it empty ("") to let the SLURM site default decide
-      account: "bcf"              # Set your own SLURM account. "" if your cluster does not use accounts
+      partition: "<your_partition>"            # Set your own SLURM partition. Leave it empty ("") to let the SLURM site default decide
+      account: "<your_account>"              # Set your own SLURM account. "" if your cluster does not use accounts
       wall_time: "24h"            # Set your own wall time for each evaluation step (e.g., "4h", "2d"; "" = partition default)
     # The SLURM settings above are for all evaluation steps. If you want different settings for particular steps you can use the keys below.
     rules:
