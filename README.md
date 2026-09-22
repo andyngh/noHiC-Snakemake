@@ -126,7 +126,7 @@ We will use the example files from the previous [noHiC](https://github.com/andyn
 
 **HiFi Reads Preparation**
 
-To prepare the HiFi reads for this tutorial, you will need to install [SRA Toolkit](https://anaconda.org/channels/bioconda/packages/sra-tools/overview) and download the prebuilt binary of [TGSFilter](https://github.com/HuiyangYu/TGSFilter/releases/tag/v1.10). 
+To prepare the HiFi reads for this tutorial, you will need to install [SRA Toolkit](https://anaconda.org/channels/bioconda/packages/sra-tools/overview) and download the prebuilt binary of [TGSFilter](https://github.com/HuiyangYu/TGSFilter/releases/tag/v1.10). Then, run the following commands.
 
 ```bash
 prefetch --max-size 200G ERR10084604
@@ -169,7 +169,7 @@ stages:
 # --- 2. Set the global parameters -------------------------------------------#
 global:
   nohic_env_path: "/path/to/noHiC-Snakemake/envs/noHiC" # Path to the downloaded noHiC environment
-  reads: "CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz"    # Path to a fastq file containing HiFi reads of CAMA-C-2
+  reads: "/path/to/CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz"    # Path to the fastq file containing HiFi reads of CAMA-C-2
   sequencing_platform: "hifi"
   sequencing_coverage: 69
 
