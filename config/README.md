@@ -3,25 +3,13 @@
 Everything the workflow needs is in one file: [`nohic.yaml`](nohic.yaml). It is handed to
 `workflow/Snakefile`, which splits it into the five sub-workflow configs.
 
-```bash
-snakemake --configfile config/nohic.yaml --cores 50
-```
+## Conventions used throughout the config file
 
-`profiles/default/config.yaml` already supplies that flag, so plain `snakemake --cores 50`
-from the repository root works too.
+You should follow the following conventions while editing the config file.
 
-## Conventions used throughout
-
-- **Switches** take `"yes"` / `"no"` (also accepted: `y`/`n`, `1`/`0`, `true`/`false`,
-  `on`/`off`). Anything else aborts with a readable error. Quote them — bare `yes` is a
-  boolean in YAML and `no` in particular is a classic foot-gun.
-- **`[chained]` keys** are filled in automatically from the stage before. Leave them as
-  `""`. Fill one in by hand only when you switch the producing stage off, or when you
-  want to point at a different file.
-- **Empty means "take the global value"**. A key that is empty or missing from a stage
-  section falls back to `global:`; a value written in the stage section always wins.
-- **Relative paths are resolved against the working directory**, not against the
-  repository. Absolute paths are the safe choice.
+- **Switches** take `"yes"` / `"no"` to turn on/off an option or a computational task.
+- **A `[chained]` key** in an assembly stage is filled in automatically from the stage before it or from the `global:` key. Leave them as `""`. You should only fill in one of these keys if you want to use a different input file. Your manually provided inputs will always win the defaults.
+- We highly recommend using **absolute paths** when fill your inputs.
 
 ---
 
