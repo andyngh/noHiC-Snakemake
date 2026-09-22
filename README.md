@@ -191,7 +191,7 @@ wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_16_GB_20260626.tar.gz
 tar -xzf k2_pluspfp_16_GB_20260626.tar.gz
 ```
 
->**Note: **
+>**Note:**
 >Check the instruction in the previous [noHiC](https://github.com/andyngh/noHiC/tree/main#32-nohic-cleansh-contaminant-contig-removal) repository, if you want to set `kraken2_memory_mapping: "yes"` in the config file.
 
 **Execute the noHiC Workflow**
