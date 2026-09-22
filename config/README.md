@@ -9,177 +9,160 @@ You should follow the following conventions while editing the config file.
 
 - **Switches** take `"yes"` / `"no"` to turn on/off an option or a computational task.
 - **A `[chained]` key** in an assembly stage is filled in automatically from the stage before it or from the `global:` key. Leave them as `""`. You should only fill in one of these keys if you want to use a different input file. Your manually provided inputs will always win the defaults.
-- We highly recommend using **absolute paths** when fill your inputs.
+- We highly recommend **using absolute paths** when fill your inputs.
+- You must **use distinct output directory names** for the 5 assembly stages in the workflow (`refpick`, `refpolish`, `clean`, `asm`, and `eval`).
 
 ---
 
-## `stages:` — which sub-workflows to run
+## Section 1: `stages` — Choose which sub-workflows to run
 
-| Key | Sub-workflow | Purpose |
+| Key | Sub-workflow | Main Tasks |
 |---|---|---|
-| `refpick` | `nohic-refpick.c.smk` | build the synthetic reference |
-| `refpolish` | `nohic-refpolish.c.smk` | polish it |
-| `clean` | `nohic-clean.c.smk` | adapter check + decontamination |
-| `asm` | `nohic-asm.c.smk` | correction / scaffolding / gap closing |
-| `eval` | `nohic-eval.slurm.c.smk` | evaluation |
+| `refpick` | `nohic-refpick.c.smk` | build (and patch) the synref using a provided pangenome graph |
+| `refpolish` | `nohic-refpolish.c.smk` | polish it the synref or a real reference genome |
+| `clean` | `nohic-clean.c.smk` | Target contig assembly decontamination |
+| `asm` | `nohic-asm.c.smk` | Target contig assembly correction and scaffolding |
+| `eval` | `nohic-eval.slurm.c.smk` | Final assembly quality check |
 
-A stage set to `"yes"` must have a section of its own further down the file. Removing the
-whole `stages:` block is allowed and means "run nothing" (every switch defaults to `no`).
+A stage set to `"yes"` **must** have a config section of its own further down the file.
 
-## `global:` — values shared by several stages
+## Section 2: `global:` — Inputs shared by several stages
 
-| Key | Copied into | Notes |
+| Key | Used by stage | Notes |
 |---|---|---|
-| `nohic_env_path` | all five stages | Path to the Python venv holding the tools. **Every enabled stage must end up with the same value** — `shell.prefix` is global in Snakemake, so the last one parsed would otherwise be used by every job. The workflow aborts if they differ. |
-| `reads` | `refpick.seq_file`, `refpolish.reads`, `asm.reads`, `eval.reads` | Error-corrected long reads (FASTQ, may be gzipped). |
-| `sequencing_platform` | `asm`, `eval` | One of `clr`, `hifi`, `ont`, `corrected_clr`, `corrected_ont`. Decides the minimap2/CRAQ/Inspector/TGS-GapCloser presets. |
-| `sequencing_coverage` | `asm`, `eval` | Integer; passed to CRAQ as `--sms_coverage`. |
+| `nohic_env_path` | all five stages | Path to the downloaded noHiC environment holding the tools. |
+| `reads` | `refpick`, `refpolish`, `asm`, and `eval` | Path to your error-corrected long reads (`.fastq`, may be gzipped). |
+| `sequencing_platform` | `asm` and `eval` | Set your sequencing platform by filling in one of the following values: `clr`, `hifi`, `ont`, `corrected_clr`, `corrected_ont`. |
+| `sequencing_coverage` | `asm` and `eval` | Provide the estimated sequencing coverage (int). |
 
 ---
 
-## 1. `refpick:` — synthetic reference construction
+## Section 3: `nohic-refpick:` — Building the synref for your target genome
 
 | Key | Type | Description |
 |---|---|---|
-| `seq_file` | path | *[chained]* Reads for k-mer counting; defaults to `global: reads`. |
-| `kmer_length` | int | KMC `-k`. `29` works well for HiFi. |
-| `memory` | int | KMC `-m`, in GB. |
-| `kmc_mode` | `fq`\|`fm` | `fq` for FASTQ input, `fm` for FASTA. |
-| `prefix` | string | Basename for all outputs of this stage. |
-| `kmc_out_dir` | path | Output directory of the stage. Must be unique across stages. |
-| `kmc_threads` | int | KMC threads. |
-| `gbz` | path | Pangenome graph in GBZ format. |
-| `hapl` | path | Matching `.hapl` haplotype index (from `vg haplotypes -H`). |
-| `vg_threads` | int | Threads for `vg haplotypes` and `vg paths`. |
-| `patch_synref` | yes/no | Patch the synthetic reference against a donor genome with GPatch. |
-| `donor_genome` | path | **Required when `patch_synref: "yes"`.** Assembled genome of a close relative. |
-| `patch_threads` | int | Threads for minimap2/samtools during patching. |
+| `seq_file` | path | *[chained]* Reads for k-mer counting; defaults to `global: reads`. You can also fill the path to a fasta file containing the contigs of your target genome. |
+| `kmer_length` | int | Set the kmer length (bp) for KMC-based kmer counting. |
+| `memory` | int | Set memory (in GB) for KMC-based kmer counting. |
+| `kmc_mode` | str | Depends on the key `seq_file`. Fill in "fq" for FASTQ input and "fm" for FASTA. |
+| `prefix` | str | Basename for all outputs of `nohic-refpick`. |
+| `kmc_out_dir` | path | Output directory of the `nohic-refpick` stage. Must be unique across stages. |
+| `kmc_threads` | int | Set KMC thread number (default: 1). |
+| `gbz` | path | Path to a pangenome graph in GBZ format. |
+| `hapl` | path | Path to the `.hapl` index of your pangenome graph. |
+| `vg_threads` | int | Threads for haplotype sampling and synref extraction steps (default: 1). |
+| `patch_synref` | str | Fill in "yes" or "no". Patch the synref using sequence from a donor genome. |
+| `donor_genome` | path | **Required when `patch_synref: "yes"`.** Path to a high-quality donor genome for synref patching (ideally a gapless genome). |
+| `patch_threads` | int | Threads for synref patching (default: 1). |
 
-**Result:** `{kmc_out_dir}/{prefix}.synref.patched.fasta` when patching is on, otherwise
-`{kmc_out_dir}/{prefix}.synref.fa`. That file is what `refpolish` and `asm` chain from.
-
-## 2. `refpolish:` — reference polishing
+## Section 4. `nohic-refpolish:` — Polishing your reference genome
 
 | Key | Type | Description |
 |---|---|---|
-| `synref` | path | *[chained]* Synthetic reference from `refpick`. |
-| `reads` | path | *[global]* Reads used for polishing. |
-| `mapping_preset` | string | minimap2 preset: `map-pb`, `map-hifi`, `map-ont`, `map-iclr`. |
-| `threads` | int | Threads for minimap2, samtools and the polisher. |
-| `polish_tool` | `hypo`\|`racon` | Which polisher to use. |
-| `coverage` | int | HyPo `-c`. HyPo only. |
-| `genome_size` | string | HyPo `-s`, e.g. `"720m"`. **Required when `polish_tool: "hypo"`.** |
-| `out_dir` | path | Output directory of the stage. |
-| `prefix` | string | Basename of the polished reference. |
+| `synref` | path | *[chained]* takes the synref from `nohic-refpick` by default. You can put in a path to your own reference genome. |
+| `mapping_preset` | str | Set minimap2 preset to map reads from your target genome to the reference. Values can be `map-pb`, `map-hifi`, `map-ont`, `map-iclr`. |
+| `threads` | int | Threads number for `nohic-refpolish` (default: 1). |
+| `polish_tool` | str | Choose which polishing tool to use. Fill in either "hypo" or "racon" (recommended: "hypo"). |
+| `coverage` | int | Fill in the estimated coverage of the reads to the reference genome. For `polish_tool: "hypo"`. |
+| `genome_size` | str | Fill in the estimated reference genome size (e.g. "720m", "1g"). Required when `polish_tool: "hypo"`. |
+| `out_dir` | path | Output directory of the `nohic-refpolish` stage. |
+| `prefix` | string | Set the basename of the polished reference. |
 
-**Result:** `{out_dir}/{prefix}.hypo.fasta` or `{out_dir}/{prefix}.racon.fasta`.
-
-## 3. `clean:` — adapter screening and decontamination
+## Section 5. `nohic-clean:` — Decontamination of your target contig assembly
 
 | Key | Type | Description |
 |---|---|---|
-| `contig_assembly` | path | The contig assembly to clean (e.g. hifiasm output). Its basename, minus `.fa`/`.fasta`/`.fna`, becomes the sample name used in every output file of this stage. |
-| `out_dir` | path | Output directory of the stage. |
-| `adapters` | path | FASTA of adapter sequences to screen for. |
-| `adapter_detection_thread` | int | Threads for `seqkit locate`. |
-| `kraken2_db` | path | Kraken2 database directory. |
-| `kraken2_thread` | int | Kraken2 threads. |
-| `kraken2_memory_mapping` | yes/no | Use `--memory-mapping` (keeps the database on disk instead of loading it into RAM). Point `kraken2_db` at `/dev/shm/...` when this is `"yes"`. |
-| `taxonomic_group` | string | The clade to **keep**, e.g. `Viridiplantae`. Contigs whose Kraken2 lineage does not contain this string are treated as contaminants. |
-| `org_ctg_identification` | yes/no | Also remove organellar (mitochondrial/plastid) contigs via BLAST. |
-| `reference_organellar_sequences` | path | **Required when `org_ctg_identification: "yes"`.** FASTA of reference organellar sequences; used as the BLAST database. |
-| `blastn_thread` | int | BLASTn threads. |
+| `contig_assembly` | path | Path to your target contig assembly to clean. Its basename (i.e., minus `.fa`/`.fasta`/`.fna`) will become the sample name used in every output file of this stage. |
+| `out_dir` | path | Output directory of the `nohic-clean` stage. |
+| `adapters` | path | Path to a fasta file holding adapter sequences to screen for. |
+| `adapter_detection_thread` | int | Threads for adapter detection step (default: 1). |
+| `kraken2_db` | path | Path to a downloaded Kraken2 database directory. Fill in `/dev/shm` if `kraken2_memory_mapping: "yes"`. In this case, the downloaded Kraken2 database (`*.k2d`) must be in `/dev/shm`. |
+| `kraken2_thread` | int | Set Kraken2 threads (default: 1). |
+| `kraken2_memory_mapping` | str | Use Kraken2's memory mapping mode when this is "yes". Fill in "no" to turn this mode off. |
+| `taxonomic_group` | str | The clade to **keep** (e.g., `Viridiplantae`). Contigs whose Kraken2 lineage does not contain this string are treated as contaminants. |
+| `org_ctg_identification` | str | Fill in "yes" to remove organellar (mitochondrial/plastid) contigs via BLASTn. Fill in "no" to turn this step off. |
+| `reference_organellar_sequences` | path | Required when `org_ctg_identification: "yes"`. Path to a fasta file containing reference organellar sequences used as the BLAST database. |
+| `blastn_thread` | int | Set BLASTn threads (default: 1). |
 
-**Result:** `{out_dir}/4_assembly_decontamination/{sample}.pure.fa`.
-
-> The adapter check is a hard gate: if any adapter is found the workflow stops and points
+> **Note:**
+> The adapter check is a hard gate: if any adapter is found in your contigs, the workflow stops and points
 > you at `1_adapter_check/{sample}.adapter_positions.bed`.
->
-> The TaxonKit rule downloads the NCBI taxdump into `$HOME/.taxonkit/` on first use and
-> leaves a marker at `Resources/taxonkit_db.done` in the working directory.
 
-## 4. `asm:` — correction, scaffolding and gap closing
+## Section 6. `nohic-asm:` — Target correction, scaffolding, and gap closing
 
 | Key | Type | Description |
 |---|---|---|
-| `contigs` | path | *[chained]* Decontaminated contigs from `clean`. |
-| `reference_genome` | path | *[chained]* Polished reference from `refpolish` (or from `refpick` if `refpolish` is off). |
-| `reads` | path | *[global]* Required as soon as any of CRAQ / Inspector / RagTag correct / gap closing is on. |
-| `out_dir` | path | Output directory of the stage. |
-| `out_prefix` | string | Basename of the outputs. |
-| `run_craq` | yes/no | CRAQ-based chimeric contig breaking (`1_CRAQ/`). |
-| `craq_threads` | int | CRAQ threads. |
-| `ignore_het` | yes/no | `"yes"` lowers the clipped-read threshold from 0.75 to 0.55 — use it for highly heterozygous genomes. |
-| `run_inspector` | yes/no | Inspector-based misassembly detection and correction (`2_Inspector/`). |
-| `inspector_threads` | int | Inspector threads. |
-| `run_ragtag_correct` | yes/no | Reference-guided contig correction with RagTag (`3_RagTag_correct/`). |
-| `ragtag_threads` | int | Threads for RagTag correct **and** RagTag scaffold. |
-| `preset` | string | RagTag correct aggressiveness — see the table below. |
-| `run_gap_closing` | yes/no | TGS-GapCloser on the scaffolds (`5_Gap_closing/`). |
-| `gap_closing_threads` | int | Threads for `seqkit fq2fa` and TGS-GapCloser. |
+| `contigs` | path | *[chained]* Takes decontaminated contigs from `nohic-clean` by default. |
+| `reference_genome` | path | *[chained]* Takes polished synref from `nohic-refpolish` (or from `nohic-refpick` if `nohic-refpolish` is off) by default. You can also specify a path to a real reference genome here. |
+| `out_dir` | path | Output directory of the `nohic-asm` stage. |
+| `out_prefix` | str | Set basename of the outputs. |
+| `run_craq` | str | Fill in "yes" to turn on CRAQ-based chimeric contig breaking. Fill in "no" to turn this step off. |
+| `craq_threads` | int | Set thread number for CRAQ (should be 5-6 threads lower than other steps) (default: 1). |
+| `ignore_het` | str | Fill in "yes" will lower the CRAQ clipped-read threshold from 0.75 to 0.55. Use it in the cases where your contigs contain many heterozygous misjoins. Fill in "no" to use the default value (0.75). |
+| `run_inspector` | str | Fill in "yes" to turn on Inspector-based misassembly detection and correction. Fill in "no" to turn this step off. |
+| `inspector_threads` | int | Set thread number for Inspector (default: 1). |
+| `run_ragtag_correct` | str | Fill in "yes" to turn on reference-guided contig correction with `RagTag correct`. Fill in "no" to turn this step off. |
+| `ragtag_threads` | int | Set thread number for `RagTag correct` and `RagTag scaffold` (default: 1). |
+| `preset` | str | Choose `RagTag correct` aggressiveness — see the table below (default: "luck"). |
+| `run_gap_closing` | str | Fill in "yes" to turn on TGS-GapCloser. Fill in "no" to turn this step off. |
+| `gap_closing_threads` | int | Set thread number for gap closing (default: 1). |
 
 RagTag correct presets:
 
-| `preset` | Behaviour |
-|---|---|
-| `draft` | minimap2 aligner, no extra filters — fastest, least invasive. |
-| `luck` | `-v 45000 --remove-small` (default). |
-| `standard` | nucmer aligner (`--maxmatch -l 100 -c 500`), `-v 45000 --remove-small`. |
-| `aggressive` | as `standard` plus `-d 50000`. |
-| `raw` | nucmer aligner, **no read validation** (reads are not passed to RagTag). |
+See the detailed descriptions of the presets in our [preprint](https://doi.org/10.64898/2026.03.17.712436).
 
-Note that RagTag correct only accepts `hifi`, `ont`, `corrected_clr` or `corrected_ont`
-as sequencing platform; raw `clr` is not supported by that step.
+| `preset` | Behaviour | Use case |
+|---|---|---|
+| `draft` | Uses default settings from `RagTag correct` | When you want to get an initial assembly without much correction. |
+| `luck` | Sets the window size in read-based misassembly validation to 45000 and remove short alignments (< 1000 bp) between target contigs and reference genome (default preset). | This is a balanced preset used when you want to increase the aggressiveness in contig correction but don't want to force the target genome sequence structure to follow the reference genome too much. |
+| `standard` | Similar to `luck` but uses `nucmer` to align your contigs to the reference genome. | Use this preset when you have a high-quality (can be gapless, T2T) reference genome that are genetically close to your target genome because this preset strictly force the sequence structure of the target genome to follow the reference. |
+| `aggressive` | Similar to `standard` but has a lower alignment merging distance of 50000 bp. | This preset is even stricter than `standard`. Use it only when you detect very-hard-to-break misjoins in your contigs. |
+| `raw` | `nucmer` aligner with **no read validation**. | Use this preset when you want to break the contigs at every point showing disagreements between them and the reference genome (not recommended). |
 
-**Result:** scaffolding always runs. The final file name accumulates a suffix per enabled
-step — `{out_prefix}[.craq][.inspector][.rt_corr].scf[.tgs].fa` — and lands in
-`5_Gap_closing/` when gap closing is on, otherwise in `4_Scaffolding/`.
+>**Note:**
+>`RagTag correct` only accepts `hifi`, `ont`, `corrected_clr` or `corrected_ont` as sequencing platform; raw `clr` is not supported by this step.
 
-## 5. `eval:` — assembly evaluation
+## Section 7. `nohic-eval:` — Final assembly QC
 
 | Key | Type | Description |
 |---|---|---|
-| `assembly` | path | *[chained]* Final assembly from `asm`. |
-| `reference_genome` | path | *[chained]* Reference to compare against. Required when QUAST or the dot plot is enabled. |
-| `reads` | path | *[global]* Required when QUAST, CRAQ or Inspector is enabled. |
-| `out_dir` | path | Output directory of the stage. |
-| `contiguity_evaluation_tool` | `gfastats`\|`quast`\|`no` | Contiguity metrics (`1_Contiguity_metrics/`). |
-| `contiguity_threads` | int | Threads for that tool. |
-| `gene_space_compl_eval_tool` | `compleasm`\|`busco`\|`no` | Gene-space completeness (`2_Gene_space_completeness/`). |
-| `gene_space_compl_eval_threads` | int | Threads for that tool. |
-| `lineage` | string | BUSCO/compleasm lineage, e.g. `poales`. |
-| `odb` | string | OrthoDB release, e.g. `odb12`. |
-| `busco_out_prefix` | string | BUSCO run name. BUSCO only. |
-| `run_craq` | yes/no | CRAQ in evaluation mode (`--break F`, `3_CRAQ/`). |
-| `craq_threads` | int | CRAQ threads. |
-| `run_inspector` | yes/no | Inspector QV/misassembly report (`4_Inspector/`). |
-| `inspector_threads` | int | Inspector threads. |
-| `run_viz` | yes/no | Assembly-vs-reference dot plot (`5_Visualization/`). |
-| `minimap2_preset` | string | minimap2 preset for the dot plot mapping, e.g. `asm5`. |
-| `viz_threads` | int | minimap2 threads. |
+| `assembly` | path | *[chained]* Takes final assembly from `nohic-asm` by default. |
+| `reference_genome` | path | *[chained]* Takes synref from `nohic-refpick` or `nohic-refpolish` by default. You can also fill in a path to a real reference genome to compare against. Required when QUAST or the dot plot visualization is enabled. |
+| `out_dir` | path | Output directory of the `nohic-eval` stage. |
+| `contiguity_evaluation_tool` | str | Choose a tool for contiguity metric calculations. Fill in "gfastats", "quast", or "no" (to turn off this step). Use "gfastats" when you don't want to calculate the NGA50 and auNGA values.|
+| `contiguity_threads` | int | Set the thread number for contiguity metric calculations (default: 1). |
+| `gene_space_compl_eval_tool` | str | Choose a tool for evaluating gene-space completeness. Fill in "compleasm" (recommended), "busco", or "no" (to turn off this step). |
+| `gene_space_compl_eval_threads` | int | Set the thread number for evaluating gene-space completeness (default: 1). |
+| `lineage` | str | Fill in BUSCO/compleasm lineage. For examples, `"poales"`, `"embryophyta"`, `"eukaryota"`... |
+| `odb` | str | Fill in OrthoDB release, e.g. "odb12". |
+| `busco_out_prefix` | str | Set the output prefix for BUSCO. Used if `gene_space_compl_eval_tool: "busco"`. |
+| `run_craq` | str | Fill in "yes" to turn on CRAQ-based evaluation (to obtain the R- and S-AQI values). Fill in "no" to turn this step off. |
+| `craq_threads` | int | Set thread number for CRAQ (should be 5-6 threads lower than other steps) (default: 1). |
+| `run_inspector` | str | Fill in "yes" to obtain Inspector QV and misassembly report. Fill in "no" to turn this step off. |
+| `inspector_threads` | int | Set thread number for Inspector (default: 1). |
+| `run_viz` | str | Fill in "yes" to draw an target-assembly-vs-reference dot plot. Fill in "no" to turn this step off. |
+| `minimap2_preset` | str | minimap2 preset for the dot plot mapping, e.g. "asm5". |
+| `viz_threads` | int | Set thread number for dot plot visualization. |
 
-`compleasm` is run from a **sibling** environment of `nohic_env_path`: if the venv is
-`/path/envs/noHiC`, compleasm is expected at `/path/envs/compleasm`. BUSCO runs from the
-main environment.
+>**Note:**
+>`compleasm` is run from a **sibling** environment of `nohic_env_path`: if the venv is
+>`/path/to/noHiC-Snakemake/envs/noHiC`, compleasm is expected at `/path/to/noHiC-Snakemake/envs/compleasm`. BUSCO runs from the
+>main noHiC environment.
 
-**Result:** `{out_dir}/pipeline.done` once every enabled check has finished.
+## Using SLURM in `nohic-eval`
 
-### `eval.use_slurm` and `eval.slurm:` — cluster settings
-
-Only the evaluation stage submits jobs. `use_slurm: "yes"` attaches SLURM resources to
-its heavy rules; you still have to start Snakemake with the SLURM executor
-(`--workflow-profile profiles/slurm`, or `--executor slurm --jobs N`).
+Only the evaluation stage submits jobs. `use_slurm: "yes"` attaches SLURM resources to its heavy rules.
 
 ```yaml
   use_slurm: "yes"
   slurm:
     default:
-      memory: "250G"        # 32000, "32000M", "32G", ...   "" = cluster default
-      partition: "bcf"      # "" lets the SLURM site default decide
-      account: "bcf"        # "" if your cluster does not use accounts
-      wall_time: "24h"      # 120, "4h", "2d";              "" = partition default
+      memory: "250G"        # 32000 (in MB if you only fill in an int), "32000M", "32G", ... "" = cluster default
+      partition: "<your_partition>"      # ""  = lets the SLURM site default decide
+      account: "<your_account>"        # "" = your cluster does not use accounts
+      wall_time: "24h"      # 120 (in minute if you only fill in an int), "4h", "2d"; "" = partition default
     rules:
-      GFAstats: {memory: "5G", partition: "idle", account: "", wall_time: ""}
+      GFAstats: {memory: "5G", partition: "<your_other_partition>", account: "", wall_time: ""}
       QUAST: {...}
       busco: {...}
       compleasm: {...}
@@ -188,36 +171,7 @@ its heavy rules; you still have to start Snakemake with the SLURM executor
       assembly_to_reference_mapping: {...}
 ```
 
-Rule names under `slurm.rules` are the **unprefixed** names as written in
-`nohic-eval.slurm.c.smk`. An empty per-rule field falls back to `default`. Rules not
-listed use `default` entirely.
+Rule names under `slurm: rules:` are the unprefixed names as written in `nohic-eval.slurm.c.smk`. An empty per-rule field falls back to `default`. Rules not listed use `default` entirely.
 
 ---
 
-## Minimal examples
-
-**Only clean an existing assembly:**
-
-```yaml
-stages: {refpick: "no", refpolish: "no", clean: "yes", asm: "no", eval: "no"}
-```
-
-**Skip reference construction and use a published genome:** switch `refpick` and
-`refpolish` off and fill the chained keys by hand —
-
-```yaml
-stages: {refpick: "no", refpolish: "no", clean: "yes", asm: "yes", eval: "yes"}
-asm:
-  reference_genome: "GCA_033546955.1_genomic.fa"    # no longer chained
-eval:
-  reference_genome: "GCA_033546955.1_genomic.fa"
-```
-
-**Evaluate an assembly you already have:**
-
-```yaml
-stages: {refpick: "no", refpolish: "no", clean: "no", asm: "no", eval: "yes"}
-eval:
-  assembly: "my_assembly.fa"
-  reference_genome: "reference.fa"
-```
