@@ -300,6 +300,8 @@ eval:
         wall_time: ""
 ```
 
+After editing the config file, you can execute the noHiC pipeline as follows. 
+
 ```bash
 snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile \                 
              --configfile path/to/noHiC-Snakemake/config/nohic.yaml \
