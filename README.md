@@ -334,17 +334,23 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
 
 Each stage writes into its own directory, named in the config. The main output files in each directory are as follows.
 
-```
-CAMA-C-2.refpick/CAMA-C-2.synref.fa → the synref of CAMA-C-2
-CAMA-C-2.refpolish/CAMA-C-2.synref.hypo.fasta → the polished synref 
-CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa → the clean CAMA-C-2 contigs
-CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa → final assembly (will be in CAMA-C-2.asm/4_Scaffolding if gap closing is turned off)
-CAMA-C-2.eval/1_Contiguity_metrics/report.tsv → QUAST contiguity metrics of the final assembly
-CAMA-C-2.eval/2_Gene_space_completeness/summary.txt → compleasm main output for gene space completeness
-CAMA-C-2.eval/3_CRAQ/runAQI_out/out_final.Report → the R- and S-AQI (regional- and structural assembly quality index) can be found here
-CAMA-C-2.eval/4_Inspector/summary_statistics → the QV can be found here
-CAMA-C-2.eval/5_Visualization/query_to_reference.paf.png → the generated dot plot
-```
+- CAMA-C-2.refpick/CAMA-C-2.synref.fa (the synref of CAMA-C-2)
+  
+- CAMA-C-2.refpolish/CAMA-C-2.synref.hypo.fasta (the polished synref)
+  
+- CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa (the clean CAMA-C-2 contigs)
+  
+- CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa (final assembly, which will be in CAMA-C-2.asm/4_Scaffolding if gap closing is turned off)
+  
+- CAMA-C-2.eval/1_Contiguity_metrics/report.tsv (QUAST contiguity metrics of the final assembly)
+  
+- CAMA-C-2.eval/2_Gene_space_completeness/summary.txt (compleasm main output for gene space completeness)
+  
+- CAMA-C-2.eval/3_CRAQ/runAQI_out/out_final.Report (the R- and S-AQI (regional- and structural assembly quality index) can be found here)
+  
+- CAMA-C-2.eval/4_Inspector/summary_statistics (the QV can be found here)
+  
+- CAMA-C-2.eval/5_Visualization/query_to_reference.paf.png (the generated dot plot)
 
 The name of the final assembly reflects which `nohic-asm` steps ran: the prefix picks up `.craq`,
 `.inspector`, `.rt_corr` for each enabled correction step, then `.scf`, then `.tgs` if
