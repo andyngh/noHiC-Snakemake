@@ -75,6 +75,54 @@ noHiC-Snakemake/
 `*.c.smk` files **must stay in `workflow/rules/`**, but the workflow itself can be
 started from any working directory.
 
+## How the stages of noHiC are wired together
+
+`stages:` in the config switches each sub-workflow on or off:
+
+```yaml
+stages:
+  refpick:   "yes"
+  refpolish: "yes"
+  clean:     "yes"
+  asm:       "yes"
+  eval:      "yes"
+```
+
+The master workflow then does four things:
+
+1. **Fills global values in.** Keys under `global:` (`nohic_env_path`, `reads`,
+   `sequencing_platform`, `sequencing_coverage`) are copied into every stage that needs
+   them. A value written inside a stage section always wins; a key left empty or missing
+   takes the global one.
+
+2. **Chains the stages.** Where a stage input is left empty, it is filled with the
+   output of the stage before:
+
+   ```
+   refpick  ──(synthetic reference)──►  refpolish ──┐
+                                                    ├──►  asm  ──(final assembly)──►  eval
+   clean  ──(decontaminated contigs)─────────────---┘
+   ```
+
+   - `refpolish.synref`      ← `refpick` result (patched or unpatched, per `patch_synref`)
+   - `asm.contigs`           ← `clean` result (`{sample}.pure.fa`)
+   - `asm.reference_genome`  ← `refpolish` result, or `refpick` result if `refpolish` is off
+   - `eval.assembly`         ← `asm` result
+   - `eval.reference_genome` ← `refpolish` result, or `refpick` result if `refpolish` is off
+
+   Chaining only happens from a stage that is switched **on**. Switch a stage off and you
+   must fill its downstream input in by hand.
+
+3. **Validates the config before anything runs**, so you get one readable message instead
+   of an error deep inside a sub-workflow. It checks that every required key for the
+   enabled stages is present, that all stages agree on one `nohic_env_path`, and that no
+   two stages write into the same output directory (they would overwrite each other's
+   `pipeline.done` markers).
+
+4. **Imports each enabled sub-workflow as a module** and prefixes its rules with the
+   stage name (`refpick_kmer_counting`, `asm_Scaffolding`, `eval_QUAST`, …). Use those
+   prefixed names with `--until`, `--omit-from`, `--allowed-rules` and friends.
+
 ## Requirements
 
 Install Snakemake (>= 8.0.0), snakemake-executor-plugin-slurm, and conda-pack as follows.
@@ -352,54 +400,6 @@ gap closing ran.
 
 Every rule writes a `.log` file next to its outputs, containing the exact
 command line that was executed.
-
-## How the stages are wired together
-
-`stages:` in the config switches each sub-workflow on or off:
-
-```yaml
-stages:
-  refpick:   "yes"
-  refpolish: "yes"
-  clean:     "yes"
-  asm:       "yes"
-  eval:      "yes"
-```
-
-The master workflow then does four things:
-
-1. **Fills global values in.** Keys under `global:` (`nohic_env_path`, `reads`,
-   `sequencing_platform`, `sequencing_coverage`) are copied into every stage that needs
-   them. A value written inside a stage section always wins; a key left empty or missing
-   takes the global one.
-
-2. **Chains the stages.** Where a stage input is left empty, it is filled with the
-   output of the stage before:
-
-   ```
-   refpick  ──(synthetic reference)──►  refpolish ──┐
-                                                    ├──►  asm  ──(final assembly)──►  eval
-   clean  ──(decontaminated contigs)─────────────---┘
-   ```
-
-   - `refpolish.synref`      ← `refpick` result (patched or unpatched, per `patch_synref`)
-   - `asm.contigs`           ← `clean` result (`{sample}.pure.fa`)
-   - `asm.reference_genome`  ← `refpolish` result, or `refpick` result if `refpolish` is off
-   - `eval.assembly`         ← `asm` result
-   - `eval.reference_genome` ← `refpolish` result, or `refpick` result if `refpolish` is off
-
-   Chaining only happens from a stage that is switched **on**. Switch a stage off and you
-   must fill its downstream input in by hand.
-
-3. **Validates the config before anything runs**, so you get one readable message instead
-   of an error deep inside a sub-workflow. It checks that every required key for the
-   enabled stages is present, that all stages agree on one `nohic_env_path`, and that no
-   two stages write into the same output directory (they would overwrite each other's
-   `pipeline.done` markers).
-
-4. **Imports each enabled sub-workflow as a module** and prefixes its rules with the
-   stage name (`refpick_kmer_counting`, `asm_Scaffolding`, `eval_QUAST`, …). Use those
-   prefixed names with `--until`, `--omit-from`, `--allowed-rules` and friends.
 
 ## Running on a cluster
 
