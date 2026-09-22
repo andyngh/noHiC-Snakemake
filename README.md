@@ -77,9 +77,10 @@ started from any working directory.
 
 ## How the stages of noHiC are wired together
 
-`stages:` in the config switches each sub-workflow on or off:
+The key `stages` in the config file contains switches for each sub-workflow. You can choose to run all stages or select one/several of them to run.
 
 ```yaml
+# Fill in "yes"/"no" to turn on/off a stage.
 stages:
   refpick:   "yes"
   refpolish: "yes"
@@ -88,20 +89,22 @@ stages:
   eval:      "yes"
 ```
 
-The master workflow then does four things:
+The master workflow (`workflow/Snakefile`) does four tasks:
 
-1. **Fills global values in.** Keys under `global:` (`nohic_env_path`, `reads`,
-   `sequencing_platform`, `sequencing_coverage`) are copied into every stage that needs
-   them. A value written inside a stage section always wins; a key left empty or missing
-   takes the global one.
+1. **Fills global values in stages that need them.**
 
-2. **Chains the stages.** Where a stage input is left empty, it is filled with the
-   output of the stage before:
+   In the `config/nohic.yaml` file, keys under `global:` (`nohic_env_path`, `reads`, `sequencing_platform`, and `sequencing_coverage`) are copied into every stage that needs them. A value written inside a stage section always wins; a key left empty or missing takes the global one.
+
+   For example, the key `seq_file:` of `refpick:` takes the value from the key `reads:` of `global:` by default. You can fill the path to a different file (e.g., a fasta file containing contigs of your target genome) in the `seq_file:` key. The fasta file will then be used for `nohic-refpick` instead of the fastq file in `reads:`.
+
+2. **Chains the stages.**
+
+Where a stage input is left empty, it is filled with the main output of the stage before it as follows.
 
    ```
-   refpick  ──(synthetic reference)──►  refpolish ──┐
-                                                    ├──►  asm  ──(final assembly)──►  eval
-   clean  ──(decontaminated contigs)─────────────---┘
+   refpick  ──(main output: synref)──►  refpolish (main output: polished synref)──┐----------------------------------------------->  
+                                                                                  ├──►  asm  ──(main output: final assembly)──►  eval
+   clean  ──(main output: decontaminated contigs)─────────────────────────────────┘
    ```
 
    - `refpolish.synref`      ← `refpick` result (patched or unpatched, per `patch_synref`)
@@ -113,13 +116,13 @@ The master workflow then does four things:
    Chaining only happens from a stage that is switched **on**. Switch a stage off and you
    must fill its downstream input in by hand.
 
-3. **Validates the config before anything runs**, so you get one readable message instead
+4. **Validates the config before anything runs**, so you get one readable message instead
    of an error deep inside a sub-workflow. It checks that every required key for the
    enabled stages is present, that all stages agree on one `nohic_env_path`, and that no
    two stages write into the same output directory (they would overwrite each other's
    `pipeline.done` markers).
 
-4. **Imports each enabled sub-workflow as a module** and prefixes its rules with the
+5. **Imports each enabled sub-workflow as a module** and prefixes its rules with the
    stage name (`refpick_kmer_counting`, `asm_Scaffolding`, `eval_QUAST`, …). Use those
    prefixed names with `--until`, `--omit-from`, `--allowed-rules` and friends.
 
