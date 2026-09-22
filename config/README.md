@@ -66,7 +66,7 @@ A stage set to `"yes"` **must** have a config section of its own further down th
 | `coverage` | int | Fill in the estimated coverage of the reads to the reference genome. For `polish_tool: "hypo"`. |
 | `genome_size` | str | Fill in the estimated reference genome size (e.g. "720m", "1g"). Required when `polish_tool: "hypo"`. |
 | `out_dir` | path | Output directory of the `nohic-refpolish` stage. |
-| `prefix` | string | Set the basename of the polished reference. |
+| `prefix` | str | Set the basename of the polished reference. |
 
 ## Section 5. `nohic-clean:` — Decontamination of your target contig assembly
 
