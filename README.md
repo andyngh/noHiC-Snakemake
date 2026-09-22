@@ -75,57 +75,6 @@ noHiC-Snakemake/
 `*.c.smk` files **must stay in `workflow/rules/`**, but the workflow itself can be
 started from any working directory.
 
-## How the stages of noHiC are wired together
-
-The key `stages` in the config file contains switches for each sub-workflow. You can choose to run all stages or select one/several of them to run.
-
-```yaml
-# Fill in "yes"/"no" to turn on/off a stage.
-stages:
-  refpick:   "yes"
-  refpolish: "yes"
-  clean:     "yes"
-  asm:       "yes"
-  eval:      "yes"
-```
-
-The master workflow (`workflow/Snakefile`) does four tasks:
-
-1. **Fills global values in stages that need them.**
-
-   In the `config/nohic.yaml` file, keys under `global:` (`nohic_env_path`, `reads`, `sequencing_platform`, and `sequencing_coverage`) are copied into every stage that needs them. A value written inside a stage section always wins; a key left empty or missing takes the global one.
-
-   For example, the key `seq_file:` of `refpick:` takes the value from the key `reads:` of `global:` by default. You can fill the path to a different file (e.g., a fasta file containing contigs of your target genome) in the `seq_file:` key. The fasta file will then be used for `nohic-refpick` instead of the fastq file in `reads:`.
-
-2. **Chains the stages.**
-
-Where a stage input is left empty, it is filled with the main output of the stage before it as follows.
-
-   ```
-   refpick  ──(main output: synref)──►  refpolish (main output: polished synref)──┐----------------------------------------------->  
-                                                                                  ├──►  asm  ──(main output: final assembly)──►  eval
-   clean  ──(main output: decontaminated contigs)─────────────────────────────────┘
-   ```
-
-   - `refpolish.synref`      ← `refpick` result (patched or unpatched, per `patch_synref`)
-   - `asm.contigs`           ← `clean` result (`{sample}.pure.fa`)
-   - `asm.reference_genome`  ← `refpolish` result, or `refpick` result if `refpolish` is off
-   - `eval.assembly`         ← `asm` result
-   - `eval.reference_genome` ← `refpolish` result, or `refpick` result if `refpolish` is off
-
-   Chaining only happens from a stage that is switched **on**. Switch a stage off and you
-   must fill its downstream input in by hand.
-
-4. **Validates the config before anything runs**, so you get one readable message instead
-   of an error deep inside a sub-workflow. It checks that every required key for the
-   enabled stages is present, that all stages agree on one `nohic_env_path`, and that no
-   two stages write into the same output directory (they would overwrite each other's
-   `pipeline.done` markers).
-
-5. **Imports each enabled sub-workflow as a module** and prefixes its rules with the
-   stage name (`refpick_kmer_counting`, `asm_Scaffolding`, `eval_QUAST`, …). Use those
-   prefixed names with `--until`, `--omit-from`, `--allowed-rules` and friends.
-
 ## Requirements
 
 Install Snakemake (>= 8.0.0), snakemake-executor-plugin-slurm, and conda-pack as follows.
@@ -404,13 +353,59 @@ gap closing ran.
 Every rule writes a `.log` file next to its outputs, containing the exact
 command line that was executed.
 
-## Running on a cluster
+## How the stages of noHiC are wired together
 
-Only the **evaluation** stage is set up for SLURM submission. Every rule of the other
-four stages is registered as a *local rule* by the master workflow, so they keep running
-on the machine that runs Snakemake even when an executor is active.
+The key `stages` in the config file contains switches for each sub-workflow. You can choose to run all stages or select one/several of them to run.
 
-Enable it in `config/nohic.yaml`:
+```yaml
+# Fill in "yes"/"no" to turn on/off a stage.
+stages:
+  refpick:   "yes"
+  refpolish: "yes"
+  clean:     "yes"
+  asm:       "yes"
+  eval:      "yes"
+```
+
+The master workflow (`workflow/Snakefile`) does four tasks:
+
+1. **Fills global values in stages that need them.**
+
+   In the `config/nohic.yaml` file, keys under `global:` (`nohic_env_path`, `reads`, `sequencing_platform`, and `sequencing_coverage`) are copied into every stage that needs them. A value written inside a stage section always wins; a key left empty or missing takes the global one.
+
+   For example, the key `seq_file:` of `refpick:` takes the value from the key `reads:` of `global:` by default. You can fill the path to a different file (e.g., a fasta file containing contigs of your target genome) in the `seq_file:` key. The fasta file will then be used for `nohic-refpick` instead of the fastq file in `reads:`.
+
+2. **Chains the stages.**
+
+Where a stage input is left empty, it is filled with the main output of the stage before it as follows.
+
+```
+refpick  ──(main output: synref)──►  refpolish (main output: polished synref)──┐────────────────────────────────────────────────┐
+                                                                               |                                                ▼                               
+                                                                               ├──►  asm  ──(main output: final assembly)──►  eval
+clean  ──(main output: decontaminated contigs)─────────────────────────────────┘
+   ```
+
+- The key `synref:` from `refpolish` takes `refpick` result (patched or unpatched synref).
+- The key `contigs:` from `asm` takes `clean` result (i.e. the decontaminated contig assembly).
+- The key `assembly:` from `eval` takes the scaffolded assembly from `asm`.
+- The key `reference_genome:` from `asm` and `eval` takes synref from `refpolish`, or `refpick` result if `refpolish` is off.
+
+Chaining only happens from a stage that is **switched on** (filled in "yes"). Switch a stage off (fill in "no") and you must fill its downstream input in manually. For example, if you don't want to draw a dot plot between the polished synref (from `refpolish`) and your scaffolded assembly, you can fill the `reference_genome:` key of `eval` with a path to your own reference genome. noHiC will use your specified reference genome to generate a dot plot. 
+
+3. **Validates the config before anything runs**
+
+If some errors occur in the config file (e.g., missing required inputs), you will get one readable message instead of an error deep inside a sub-workflow. The workflow checks that every required key for the enabled stages is present, that all stages agree on one `nohic_env_path`, and that no two stages write into the same output directory.
+
+4. **Imports each enabled sub-workflow as a module to be executed**
+
+The computational tasks of selected assembly stages are provided with essential inputs from the config file and executed. 
+
+## Executing noHiC Using SLURM
+
+Only the **evaluation** stage (`nohic-eval`) is set up for SLURM submission. Every rule of the other four stages is registered as a *local rule* by the master workflow. This means that `refpick`, `refpolish`, `clean`, and `asm` will consider the node where the `.sbatch` script containing the snakemake command is submitted to as the local node. Only the computational jobs from `eval` will be submitted to multiple different nodes to be run in parallel. 
+
+You can enable SLURM usage in `config/nohic.yaml` as follows.
 
 ```yaml
 eval:
@@ -418,32 +413,18 @@ eval:
   slurm:
     default:
       memory: "250G"
-      partition: "bcf"
-      account: "bcf"
+      partition: "<your_partition>"
+      account: "<your_account>"
       wall_time: "24h"
+# If you want to change the resource requirements for specific steps you can do as follows; an empty field falls back to "default"
     rules:
       GFAstats:
         memory: "5G"
-        partition: "idle"
-      # ... per-rule overrides; an empty field falls back to "default"
+        partition: "<your_different_partition>"
+        account:
+        wall_time: "1h"
+      #...
 ```
-
-and run with the SLURM executor:
-
-```bash
-pip install snakemake-executor-plugin-slurm
-snakemake --workflow-profile profiles/slurm --jobs 20
-# equivalently: snakemake --executor slurm --jobs 20 --configfile config/nohic.yaml
-```
-
-Memory accepts `32000`, `"32000M"`, `"32G"`; wall time accepts `120`, `"4h"`, `"2d"`.
-Leave a field empty (`""`) to let the cluster default decide. With `use_slurm: "no"` the
-eval rules run locally like everything else.
-
-The lightweight eval rules (`scaffold_length_calculations`, `dot_plot_generation`,
-`pipeline_done` and all the `*_skipped` markers) always stay local — they are not worth a
-job submission.
-
 
 ## Troubleshooting
 
@@ -460,11 +441,11 @@ job submission.
 
 ## Authors
 
-- Andy Nguyen Hoang
+- Andy Nguyen-Hoang
 
 ## References
 
-> Köster, J., Mölder, F., Jablonski, K. P., Letcher, B., Hall, M. B., Tomkins-Tinch, C. H., Sochat, V., Forster, J., Lee, S., Twardziok, S. O., Kanitz, A., Wilm, A., Holtgrewe, M., Rahmann, S., & Nahnsen, S. _Sustainable data analysis with Snakemake_. F1000Research, 10:33, **2021**. https://doi.org/10.12688/f1000research.29032.2
+> Nguyen-Hoang A., Arslan K., Kopalli V., Windpassinger S., Perovic D., Stahl A., Golicz A. (2026) NoHiC: A Pipeline for Plant Contig Scaffolding Using Personalized References from Pangenome Graphs. *BioRXiv*. DOI: https://doi.org/10.64898/2026.03.17.712436. 
 
 Tool references are listed per sub-workflow in
 [`workflow/rules/README.md`](workflow/rules/README.md).
