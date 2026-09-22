@@ -143,7 +143,7 @@ wget https://genome-idx.s3.amazonaws.com/kraken/k2_pluspfp_16_GB_20260626.tar.gz
 tar -xzf k2_pluspfp_16_GB_20260626.tar.gz
 ```
 
->**Note**
+>**Note: **
 >Check the instruction in the previous [noHiC](https://github.com/andyngh/noHiC/tree/main#32-nohic-cleansh-contaminant-contig-removal) repository, if you want to set `kraken2_memory_mapping: "yes"` in the config file.
 
 **Execute the noHiC Workflow**
@@ -232,17 +232,18 @@ asm:
   gap_closing_threads: 20         # Fill in the thread number for gap closing (int)
 
 # --- 7. Assembly evaluation (nohic-eval) -----------------------------------------#
+# We will use the public assembly of CAMA-C-2 as the reference genome to evaluate our newly-scaffolded assembly.
 eval:
   assembly: ""                    # [chained] By default, take the final assembly from nohic-asm
   reference_genome: "/path/to/GCA_946406975.1_CAMA-C-2.PacbioHiFiAssembly_genomic.ed.SELECTED.fa"            
   out_dir: "CAMA-C-2.eval"          # Name the output directory
   contiguity_evaluation_tool: "quast"    # Choose the tool for contiguity evaluation ("gfastats", "quast", or "no" to turn the step off)
   contiguity_threads: 20          # Set the thread number for contiguity evaluation (int)
-  gene_space_compl_eval_tool: "busco"   # Choose the tool for gene-space completeness evaluation ("compleasm", "busco", or "no" to turn the step off)
+  gene_space_compl_eval_tool: "compleasm"   # Choose the tool for gene-space completeness evaluation ("compleasm", "busco", or "no" to turn the step off)
   gene_space_compl_eval_threads: 20 # Set the thread number for gene-space completeness evaluation (int)
   lineage: "brassicales"            # Set the BUSCO lineage
   odb: "odb12"                      # Set the version of BUSCO's OrthoDB
-  busco_out_prefix: "CAMA-C-2"    # Set the output prefix (only used with busco)
+  busco_out_prefix: ""    # Set the output prefix (only used with busco)
   run_craq: "yes"                   # Fill in "yes" to calculate S- and R-AQI by CRAQ or "no" to turn this step off.
   craq_threads: 15        #  Note: the number for this step should be 5-6 fewer threads compared to other steps of nohic-eval. 
   run_inspector: "yes"    # Fill in "yes" to calculate QV by Inspector or "no" to turn this step off.
@@ -329,18 +330,28 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
           --rerun-incomplete --executor slurm --jobs 5 --local-cores ${SLURM_CPUS_PER_TASK}
 ```
 
-### Useful invocations
+## Outputs
 
-```bash
-# run a single stage (rules are prefixed with the stage name)
-snakemake --cores 50 --until refpick_synref_extracting
+Each stage writes into its own directory, named in the config. The main output files in each directory are as follows.
 
-# see why something will be re-run
-snakemake -n -r --cores 1
-
-# a DAG picture of the whole thing
-snakemake --dag --cores 1 | dot -Tsvg > dag.svg
 ```
+CAMA-C-2.refpick/CAMA-C-2.synref.fa → the synref of CAMA-C-2
+CAMA-C-2.refpolish/CAMA-C-2.synref.hypo.fasta → the polished synref 
+CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa → the clean CAMA-C-2 contigs
+CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa → final assembly (will be in CAMA-C-2.asm/4_Scaffolding if gap closing is turned off)
+CAMA-C-2.eval/1_Contiguity_metrics/report.tsv → QUAST contiguity metrics of the final assembly
+CAMA-C-2.eval/2_Gene_space_completeness/summary.txt → compleasm main output for gene space completeness
+CAMA-C-2.eval/3_CRAQ/runAQI_out/out_final.Report → the R- and S-AQI (regional- and structural assembly quality index) can be found here
+CAMA-C-2.eval/4_Inspector/summary_statistics → the QV can be found here
+CAMA-C-2.eval/5_Visualization/query_to_reference.paf.png → the generated dot plot
+```
+
+The name of the final assembly reflects which `nohic-asm` steps ran: the prefix picks up `.craq`,
+`.inspector`, `.rt_corr` for each enabled correction step, then `.scf`, then `.tgs` if
+gap closing ran. 
+
+Every rule writes a `.log` file next to its outputs, containing the exact
+command line that was executed.
 
 ## How the stages are wired together
 
@@ -430,29 +441,6 @@ The lightweight eval rules (`scaffold_length_calculations`, `dot_plot_generation
 `pipeline_done` and all the `*_skipped` markers) always stay local — they are not worth a
 job submission.
 
-## Output
-
-Each stage writes into its own directory, named in the config. With the shipped example
-settings:
-
-```
-SB14122.refpick/     synthetic reference   → SB14122.synref.fa / SB14122.synref.patched.fasta
-SB14122.refpolish/   polished reference    → SB14122.synref.patched.hypo.fasta
-SB14122.clean/       1_adapter_check/ 2_contamination_check/ 3_organellar_DNA_check/
-                     4_assembly_decontamination/ → *.pure.fa
-SB14122.asm/         1_CRAQ/ 2_Inspector/ 3_RagTag_correct/ 4_Scaffolding/ 5_Gap_closing/
-                     → final assembly, e.g. SB14122.craq.inspector.rt_corr.scf.tgs.fa
-SB14122.eval/        1_Contiguity_metrics/ 2_Gene_space_completeness/ 3_CRAQ/
-                     4_Inspector/ 5_Visualization/ + pipeline.done
-```
-
-The name of the final assembly reflects which steps ran: the prefix picks up `.craq`,
-`.inspector`, `.rt_corr` for each enabled correction step, then `.scf`, then `.tgs` if
-gap closing ran. Every rule writes a `.log` file next to its outputs, containing the exact
-command line that was executed.
-
-`workflow/rules/README.md` documents each sub-workflow rule by rule, and
-`config/README.md` explains every configuration key.
 
 ## Troubleshooting
 
