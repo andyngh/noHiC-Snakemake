@@ -103,7 +103,7 @@ A stage set to `"yes"` **must** have a config section of its own further down th
 | `inspector_threads` | int | Set thread number for Inspector (default: 1). |
 | `run_ragtag_correct` | str | Fill in "yes" to turn on reference-guided contig correction with `RagTag correct`. Fill in "no" to turn this step off. |
 | `ragtag_threads` | int | Set thread number for `RagTag correct` and `RagTag scaffold` (default: 1). |
-| `preset` | str | Choose `RagTag correct` aggressiveness — see the table below (default: "luck"). |
+| `preset` | str | Choose `RagTag correct` aggressiveness - see the table below (default: "luck"). |
 | `run_gap_closing` | str | Fill in "yes" to turn on TGS-GapCloser. Fill in "no" to turn this step off. |
 | `gap_closing_threads` | int | Set thread number for gap closing (default: 1). |
 
