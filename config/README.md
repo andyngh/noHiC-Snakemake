@@ -19,7 +19,7 @@ You should follow the following conventions while editing the config file.
 | Key | Sub-workflow | Main Tasks |
 |---|---|---|
 | `refpick` | `nohic-refpick.c.smk` | build (and patch) the synref using a provided pangenome graph |
-| `refpolish` | `nohic-refpolish.c.smk` | polish it the synref or a real reference genome |
+| `refpolish` | `nohic-refpolish.c.smk` | polish the synref or a real reference genome |
 | `clean` | `nohic-clean.c.smk` | Target contig assembly decontamination |
 | `asm` | `nohic-asm.c.smk` | Target contig assembly correction and scaffolding |
 | `eval` | `nohic-eval.slurm.c.smk` | Final assembly quality check |
