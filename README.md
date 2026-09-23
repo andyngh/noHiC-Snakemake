@@ -114,7 +114,7 @@ source /path/to/noHiC-Snakemake/workflow/envs/compleasm/bin/deactivate
 conda activate snakemake
 ```
 
-After running these commands, copy the path `/path/to/noHiC-Snakemake/envs/noHiC` into
+After running these commands, copy the path `/path/to/noHiC-Snakemake/workflow/envs/noHiC` into
 the `nohic_env_path` key of `noHiC-Snakemake/config/nohic.yaml`.
 
 ## Tutorial
