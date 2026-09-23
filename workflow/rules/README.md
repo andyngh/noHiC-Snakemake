@@ -107,7 +107,7 @@ Each correction step in this stage is optional.
 | `3_RagTag_correct/` | `RagTag_correct` | `ragtag.py correct` | Contigs corrected by RagTag (`ragtag.correct.fasta`) |
 | | `rename_rt_corr_contigs` | mv | Renamed contig file of this step (`{…}.rt_corr.fa`) |
 | `4_Scaffolding/` | `Scaffolding` | `ragtag.py scaffold` | Scaffolded contigs (`ragtag.scaffold.fasta`) |
-| | `rename_scaffolds` | mv | Renamed scaffold file of this step (`{…}.scf.fa`) |
+| | `rename_scaffolds` | sed | Renamed scaffold file of this step, with the `#` character removed (`{…}.scf.fa`) |
 | `5_Gap_closing/` | `fastq_to_fasta` | `seqkit fq2fa` | Long reads in FASTA format (`reads.fa`) (temporary) |
 | | `gap_closing` | TGS-GapCloser | Scaffolds with gaps filled (`{…}.scf.tgs.scaff_seqs`) |
 | | `rename_gap_closed_scaffold` | mv | Renamed scaffold file of this step (`{…}.scf.tgs.fa`) |
