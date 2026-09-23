@@ -335,7 +335,7 @@ rule rename_scaffolds:
     shell:
         r"""
         set -euo pipefail
-        mv {input.scf_unnamed} {output.scf}
+        sed '/^>/ s/#/_/g' {input.scf_unnamed} > {output.scf}
         """
 
 # Gap closing
