@@ -19,7 +19,7 @@ independently, all driven from a single configuration file:
 
 | # | Stage       | Sub-workflow                  | Computational Tasks |
 |---|-------------|-------------------------------|--------------|
-| 1 | `refpick`   | `nohic-refpick.c.smk`         | Builds the synref and optionally patches the gaps in the generated synref using the sequence from a high-quality donor genome. |
+| 1 | `refpick`   | `nohic-refpick.c.smk`         | Builds the best-fit reference for a target genome (synref) and optionally patches its gaps using the sequence from a high-quality donor genome. |
 | 2 | `refpolish` | `nohic-refpolish.c.smk`       | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon |
 | 3 | `clean`     | `nohic-clean.c.smk`           | Adapter screening, Kraken2/TaxonKit-based decontamination, and optional organellar-contig removal from the contig assembly |
 | 4 | `asm`       | `nohic-asm.c.smk`             | Contig correction (CRAQ, Inspector, and RagTag correct), reference-guided scaffolding (RagTag scaffold), and gap closing (TGS-GapCloser) |
