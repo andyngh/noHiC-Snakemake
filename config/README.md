@@ -147,8 +147,8 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 
 > [!NOTE]
 > `compleasm` is run from a **sibling** environment of `nohic_env_path`: if the environment
-> is `/path/to/noHiC-Snakemake/envs/noHiC`, compleasm is expected at
-> `/path/to/noHiC-Snakemake/envs/compleasm`. BUSCO runs from the main noHiC environment.
+> is `/path/to/noHiC-Snakemake/workflow/envs/noHiC`, compleasm is expected at
+> `/path/to/noHiC-Snakemake/workflow/envs/compleasm`. BUSCO runs from the main noHiC environment.
 
 ## Using SLURM in `nohic-eval`
 
