@@ -14,12 +14,13 @@ snakemake --snakefile ../workflow/Snakefile \
 ```
 
 `setup.sh` creates empty placeholder files for every input named in
-[`config/nohic.yaml`](config/nohic.yaml); the run is always a dry run, so nothing is ever
+[`config/nohic.yaml`](config/nohic.yaml). The run is always a dry run, so nothing is ever
 read or executed. A successful run builds 44 jobs with all five stages enabled and every
 optional step switched on.
 
 `--workflow-profile none` is needed because the working directory is `.test/`, where the
-repository's `profiles/default` does not apply — the config is passed explicitly instead.
+repository's `profiles/default` does not apply — the config file is passed explicitly
+instead.
 
-This is a structural test only. It cannot tell you whether CRAQ, RagTag or compleasm
-behave correctly; for that you need a real (small) dataset and the full environment.
+This is a structural test only. It cannot tell you whether CRAQ, RagTag, or compleasm
+behave correctly; for that, you need a real (small) dataset and the full environment.
