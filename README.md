@@ -177,7 +177,7 @@ stages:
 
 # --- 2. Set the global parameters -------------------------------------------#
 global:
-  nohic_env_path: "/path/to/noHiC-Snakemake/envs/noHiC"      # Path to the downloaded noHiC environment
+  nohic_env_path: "/path/to/noHiC-Snakemake/workflow/envs/noHiC"      # Path to the downloaded noHiC environment
   reads: "/path/to/CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz" # Path to the FASTQ file containing the HiFi reads of CAMA-C-2
   sequencing_platform: "hifi"
   sequencing_coverage: 69
