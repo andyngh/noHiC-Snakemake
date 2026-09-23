@@ -25,10 +25,6 @@ independently, all driven by a single configuration file:
 | 4 | `asm`       | `nohic-asm.c.smk`        | Corrects the contigs (CRAQ, Inspector, and RagTag correct), performs reference-guided scaffolding (RagTag scaffold), and closes gaps (TGS-GapCloser). |
 | 5 | `eval`      | `nohic-eval.slurm.c.smk` | Assesses the scaffolded assembly in terms of contiguity, gene-space completeness, and structural correctness (based on QV, AQIs, and a dot plot). |
 
-The stages are chained automatically: `refpick` → `refpolish` → `asm`, `clean` → `asm`,
-and `asm` → `eval`. If you switch a stage off, the input it would otherwise provide has
-to be specified manually in the config file.
-
 ---
 
 ## Contents
