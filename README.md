@@ -477,8 +477,7 @@ eval:
 
 > Nguyen-Hoang A., Arslan K., Kopalli V., Windpassinger S., Perovic D., Stahl A., Golicz A. (2026). NoHiC: A Pipeline for Plant Contig Scaffolding Using Personalized References from Pangenome Graphs. *bioRxiv*. DOI: https://doi.org/10.64898/2026.03.17.712436
 
-Tool references are listed per sub-workflow in
-[`workflow/rules/README.md`](workflow/rules/README.md).
+Tool references are listed per sub-workflow in [the previous noHiC repo](https://github.com/andyngh/noHiC/blob/main/README.md#12-dependency-citations).
 
 ## License
 
