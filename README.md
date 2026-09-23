@@ -54,15 +54,15 @@ noHiC-Snakemake/
 │   ├── slurm/config.yaml              # Cluster profile for the evaluation stage (nohic-eval)
 │   └── README.md
 ├── workflow/
-│   ├── Snakefile                      # The noHiC workflow to be run
-│   ├── rules/                         # Directory containing noHiC's sub-workflows
-│   │   ├── nohic-refpick.c.smk
-│   │   ├── nohic-refpolish.c.smk
-│   │   ├── nohic-clean.c.smk
-│   │   ├── nohic-asm.c.smk
-│   │   ├── nohic-eval.slurm.c.smk
-│   │   └── README.md                  # Explanation of each sub-workflow
-│   └── scripts/README.md              # Helper scripts the workflow expects on $PATH
+│  ├── Snakefile                      # The noHiC workflow to be run
+│  ├── rules/                         # Directory containing noHiC's sub-workflows
+│      ├── nohic-refpick.c.smk
+│      ├── nohic-refpolish.c.smk
+│      ├── nohic-clean.c.smk
+│      ├── nohic-asm.c.smk
+│      ├── nohic-eval.slurm.c.smk
+│      └── README.md                  # Explanation of each sub-workflow
+│   
 ├── .test/                             # Smoke test (dry run) used by continuous integration
 ├── .github/workflows/                 # GitHub Actions workflows
 ├── logo/noHiC_logo1.png
