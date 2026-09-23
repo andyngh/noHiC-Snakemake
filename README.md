@@ -412,10 +412,7 @@ The master workflow (`workflow/Snakefile`) performs four tasks:
 
    Chaining only happens from a stage that is **switched on** (set to `"yes"`). If you
    switch a stage off (set it to `"no"`), you must fill in its downstream input manually.
-   For example, if you don't want to draw a dot plot between the polished synref (from
-   `refpolish`) and your scaffolded assembly, you can fill in the `reference_genome:` key
-   of `eval` with the path to your own reference genome. noHiC will then use that
-   reference genome to generate the dot plot.
+   For example, if you don't want to generate the synref (from `refpick` and `refpolish`), you can set `stage: refpick: ` and `stage: refpolish: ` to "no" and fill in the `reference_genome:` key of `asm` and `eval` with the path to your own reference genome. noHiC will then use that reference genome for scaffolding and evaluation.
 
 3. **Validates the config before anything runs.**
 
