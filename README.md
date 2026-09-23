@@ -154,7 +154,7 @@ conda activate snakemake
 cd /path/to/your/working/directory
 ```
 
-Edit the config file (`path/to/noHiC-Snakemake/config/nohic.yaml`) as follows before running the pipeline.
+Edit the config file (`path/to/noHiC-Snakemake/config/nohic.yaml`) as follows before running the pipeline. Find the detailed descriptions of the keys in the config file [here](https://github.com/andyngh/noHiC-Snakemake/tree/main/config).
 
 ```yaml
 # --- 1. Choose the stages to run --------------------------------------------#
@@ -332,7 +332,7 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
 
 ## Outputs
 
-Each stage writes into its own directory, named in the config. The main output files in each directory are as follows.
+Each stage writes into its own directory, named in the config. The main output files in each directory are as follows. Check [this page](https://github.com/andyngh/noHiC-Snakemake/tree/main/workflow/rules) for detailed lists of outputs from the assembly stages.
 
 - CAMA-C-2.refpick/CAMA-C-2.synref.fa (the synref of CAMA-C-2)
   
