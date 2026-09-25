@@ -89,33 +89,17 @@ Clone this repository:
 git clone https://github.com/andyngh/noHiC-Snakemake.git
 ```
 
-Download and unpack the conda environments for noHiC:
+Setting up conda environments for noHiC:
 
 ```bash
-# Create directories for the required environments
-mkdir -p /path/to/noHiC-Snakemake/workflow/envs/noHiC
-mkdir -p /path/to/noHiC-Snakemake/workflow/envs/compleasm
-
-# Download the environments
-wget https://zenodo.org/records/22880706/files/noHiC.tar.gz
-wget https://zenodo.org/records/22880706/files/compleasm.tar.gz
-
-# Decompress the environments
-tar -xzf noHiC.tar.gz -C /path/to/noHiC-Snakemake/workflow/envs/noHiC
-tar -xzf compleasm.tar.gz -C /path/to/noHiC-Snakemake/workflow/envs/compleasm
-
-# Unpack the environments
-source /path/to/noHiC-Snakemake/workflow/envs/noHiC/bin/activate
-conda-unpack
-source /path/to/noHiC-Snakemake/workflow/envs/noHiC/bin/deactivate
-source /path/to/noHiC-Snakemake/workflow/envs/compleasm/bin/activate
-conda-unpack
-source /path/to/noHiC-Snakemake/workflow/envs/compleasm/bin/deactivate
+# Change to the noHiC-Snakemake directory
+cd /path/to/noHiC-Snakemake
+# Set up the conda environments
+chmod +x ./setup.sh
+./setup.sh
+# Activate the "snakemake" environment
 conda activate snakemake
 ```
-
-After running these commands, copy the path `/path/to/noHiC-Snakemake/workflow/envs/noHiC` into
-the `nohic_env_path` key of `noHiC-Snakemake/config/nohic.yaml`.
 
 ## Tutorial
 
