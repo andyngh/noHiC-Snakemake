@@ -89,7 +89,7 @@ Clone this repository:
 git clone https://github.com/andyngh/noHiC-Snakemake.git
 ```
 
-Setting up conda environments for noHiC:
+Set up conda environments for noHiC:
 
 ```bash
 # Change to the noHiC-Snakemake directory
