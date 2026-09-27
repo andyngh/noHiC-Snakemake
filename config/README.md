@@ -75,7 +75,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `out_dir` | `cl_out` | Output directory of the `nohic-clean` stage (default: Clean.outdir). |
 | `adapters` | `cl_adapters` | *[Required]* Path to a FASTA file containing the adapter sequences to screen for. |
 | `adapter_detection_thread` | `cl_adapter_t` | Number of threads for the adapter detection step (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
-| `kraken2_db` | `cl_k2db` | *[Required]* Path to a downloaded Kraken2 database directory. Fill in `/dev/shm` if `kraken2_memory_mapping: "yes"`; in this case, the downloaded Kraken2 database files (`*.k2d`) must be in `/dev/shm`. |
+| `kraken2_db` | `cl_k2db` | *[Required]* Path to a downloaded Kraken2 database directory. Fill in `/dev/shm` if `cl_k2_mmap=yes`; in this case, the downloaded Kraken2 database files (`*.k2d`) must be in `/dev/shm`. |
 | `kraken2_thread` | `cl_k2_t` | Number of threads for Kraken2 (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `kraken2_memory_mapping` | `cl_k2_mmap` | Fill in `"yes"` to use Kraken2's memory-mapping mode or `"no"` to turn this mode off (default: no). |
 | `taxonomic_group` | `cl_taxon` | The clade to **keep**. Contigs whose Kraken2 lineage does not contain this string are treated as contaminants. (default: Viridiplantae). |
