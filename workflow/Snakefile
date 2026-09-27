@@ -1,9 +1,320 @@
-from snakemake.utils import min_version
+from snakemake.utils import min_version, update_config
 min_version("8.0")
 import os
 import re
+import sys
+import math
+import difflib
+import textwrap
+import yaml
 
-configfile: "nohic.yaml"
+#------------------------------------------------------------------------------#
+#     Default config & command-line arguments                                  #
+#------------------------------------------------------------------------------#
+
+# Change a config key on the command line through Snakemake's --config
+# option, using the argument names in ARGS below:
+#
+#   snakemake --cores 20 --config reads=hifi.fastq.gz pk_k=31 as_craq=no
+#
+# Every argument points to exactly one key of config/nohic.yaml. An argument that
+# is not given, or given empty (pk_k=), keeps the default value from config/nohic.yaml.
+
+#---- Legal arguments ----#
+ARGS = {
+    # stages
+    "run_refpick":   ("stages", "refpick"),
+    "run_refpolish": ("stages", "refpolish"),
+    "run_clean":     ("stages", "clean"),
+    "run_asm":       ("stages", "asm"),
+    "run_eval":      ("stages", "eval"),
+    # global
+    "env":      ("global", "nohic_env_path"),
+    "reads":    ("global", "reads"),
+    "platform": ("global", "sequencing_platform"),
+    "cov":      ("global", "sequencing_coverage"),
+    "prefix":   ("global", "prefix"),                   
+    # refpick  (pk_)
+    "pk_seq":      ("refpick", "seq_file"),
+    "pk_k":        ("refpick", "kmer_length"),
+    "pk_mem":      ("refpick", "memory"),
+    "pk_kmc_mode": ("refpick", "kmc_mode"),
+    "pk_prefix":   ("refpick", "prefix"),
+    "pk_out":      ("refpick", "kmc_out_dir"),
+    "pk_kmc_t":    ("refpick", "kmc_threads"),
+    "pk_gbz":      ("refpick", "gbz"),
+    "pk_hapl":     ("refpick", "hapl"),
+    "pk_vg_t":     ("refpick", "vg_threads"),
+    "pk_patch":    ("refpick", "patch_synref"),
+    "pk_donor":    ("refpick", "donor_genome"),
+    "pk_patch_t":  ("refpick", "patch_threads"),
+    # refpolish  (pl_)
+    "pl_ref":    ("refpolish", "synref"),
+    "pl_preset": ("refpolish", "mapping_preset"),
+    "pl_t":      ("refpolish", "threads"),
+    "pl_tool":   ("refpolish", "polish_tool"),
+    "pl_cov":    ("refpolish", "coverage"),
+    "pl_gsize":  ("refpolish", "genome_size"),
+    "pl_out":    ("refpolish", "out_dir"),
+    "pl_prefix": ("refpolish", "prefix"),
+    # clean  (cl_)
+    "cl_ctg":       ("clean", "contig_assembly"),
+    "cl_out":       ("clean", "out_dir"),
+    "cl_adapters":  ("clean", "adapters"),
+    "cl_adapter_t": ("clean", "adapter_detection_thread"),
+    "cl_k2db":      ("clean", "kraken2_db"),
+    "cl_k2_t":      ("clean", "kraken2_thread"),
+    "cl_k2_mmap":   ("clean", "kraken2_memory_mapping"),
+    "cl_taxon":     ("clean", "taxonomic_group"),
+    "cl_org":       ("clean", "org_ctg_identification"),
+    "cl_org_ref":   ("clean", "reference_organellar_sequences"),
+    "cl_blast_t":   ("clean", "blastn_thread"),
+    # asm  (as_)
+    "as_ctg":         ("asm", "contigs"),
+    "as_ref":         ("asm", "reference_genome"),
+    "as_out":         ("asm", "out_dir"),
+    "as_prefix":      ("asm", "out_prefix"),
+    "as_craq":        ("asm", "run_craq"),
+    "as_craq_t":      ("asm", "craq_threads"),
+    "as_ignore_het":  ("asm", "ignore_het"),
+    "as_inspector":   ("asm", "run_inspector"),
+    "as_inspector_t": ("asm", "inspector_threads"),
+    "as_ragtag":      ("asm", "run_ragtag_correct"),
+    "as_ragtag_t":    ("asm", "ragtag_threads"),
+    "as_preset":      ("asm", "preset"),
+    "as_gapclose":    ("asm", "run_gap_closing"),
+    "as_gapclose_t":  ("asm", "gap_closing_threads"),
+    # eval  (ev_)
+    "ev_asm":          ("eval", "assembly"),
+    "ev_ref":          ("eval", "reference_genome"),
+    "ev_out":          ("eval", "out_dir"),
+    "ev_contig_tool":  ("eval", "contiguity_evaluation_tool"),
+    "ev_contig_t":     ("eval", "contiguity_threads"),
+    "ev_gene_tool":    ("eval", "gene_space_compl_eval_tool"),
+    "ev_gene_t":       ("eval", "gene_space_compl_eval_threads"),
+    "ev_lineage":      ("eval", "lineage"),
+    "ev_odb":          ("eval", "odb"),
+    "ev_busco_prefix": ("eval", "busco_out_prefix"),
+    "ev_craq":         ("eval", "run_craq"),
+    "ev_craq_t":       ("eval", "craq_threads"),
+    "ev_inspector":    ("eval", "run_inspector"),
+    "ev_inspector_t":  ("eval", "inspector_threads"),
+    "ev_viz":          ("eval", "run_viz"),
+    "ev_mm2_preset":   ("eval", "minimap2_preset"),
+    "ev_viz_t":        ("eval", "viz_threads"),
+    "ev_slurm":        ("eval", "use_slurm"),
+    # eval SLURM settings for all evaluation steps
+    "slurm_mem":       ("eval", "slurm", "default", "memory"),
+    "slurm_partition": ("eval", "slurm", "default", "partition"),
+    "slurm_account":   ("eval", "slurm", "default", "account"),
+    "slurm_time":      ("eval", "slurm", "default", "wall_time"),
+}
+# eval SLURM settings for single evaluation steps, e.g. slurm_quast_mem=100G
+for _rule, _short in [("GFAstats", "gfastats"), ("QUAST", "quast"), ("busco", "busco"),
+                      ("compleasm", "compleasm"), ("craq_based_evaluation", "craq_eval"),
+                      ("inspector_based_evaluation", "inspector_eval"),
+                      ("assembly_to_reference_mapping", "mapping")]:
+    for _key, _suffix in [("memory", "mem"), ("partition", "partition"),
+                          ("account", "account"), ("wall_time", "time")]:
+        ARGS[f"slurm_{_short}_{_suffix}"] = ("eval", "slurm", "rules", _rule, _key)
+
+#---- Load the default config ----#
+# Automatically identify config/nohic.yaml from repo's root repository.
+
+DEFAULT_CONFIG = os.path.join(workflow.basedir, "..", "config", "nohic.yaml")
+with open(DEFAULT_CONFIG) as _fh:
+    _DEFAULTS = yaml.safe_load(_fh)
+
+def _get(d, path):
+    '''_get(_DEFAULTS, ("global", "reads")) -> _DEFAULTS["global"]["reads"]'''
+    for _p in path:
+        d = d[_p]
+    return d
+
+def _set(d, path, value):
+    '''_set(_DEFAULTS, ("global", "reads"), "x.fq.gz") -> _DEFAULTS["global"]["reads"] = "x.fq.gz"'''
+    for _p in path[:-1]:
+        d = d[_p]
+    d[path[-1]] = value
+
+def _as_default_type(value, default, arg):
+    '''
+    Give an argument the type of its default value in config/nohic.yaml.
+      - text key   (default "PREFIX", "yes"):  pk_prefix=123 -> "123"
+      - whole-number key (default 29):         pk_k=31 -> 31, pk_k=31.0 -> 31
+                                               pk_k=31.5 / abc / True / inf -> error
+      - decimal key (default 0.5):             x=1 -> 1.0, x=abc / True / nan -> error
+    '''
+    # Text keys: always keep the value as text.
+    # (bool is checked first because Python counts True/False as ints.)
+    if isinstance(default, bool) or not isinstance(default, (int, float)):
+        return str(value)
+
+    _kind = "a whole number" if isinstance(default, int) else "a number"
+    _error = WorkflowError(f"ERROR: {arg} needs {_kind} (default: {default}). Got: {value}")
+
+    # True/False would silently become 1/0 -> not accepted for a number key.
+    if isinstance(value, bool):
+        raise _error
+    try:
+        _number = float(value)
+    except (TypeError, ValueError):
+        raise _error
+    if not math.isfinite(_number):              # inf, nan
+        raise _error
+
+    if isinstance(default, int):
+        if isinstance(value, int):              # already a whole number: return as is
+            return value
+        if not _number.is_integer():            # 31.5 would be cut down to 31 -> error
+            raise _error
+        return int(_number)                     # 31.0 -> 31
+    return _number
+
+# Every argument has to point to a key that exists in config/nohic.yaml.
+for _arg, _path in ARGS.items():
+    try:
+        _get(_DEFAULTS, _path)
+    except (KeyError, TypeError):
+        raise WorkflowError(f"ERROR: argument '{_arg}' points to '{': '.join(_path)}', "
+                            f"which is not in {DEFAULT_CONFIG}")
+
+#---- Help message ----#
+
+# The help message is displayed through --config. Any value works (help=yes, help=).
+# The descriptions are the comments written next to the keys in config/nohic.yaml.
+
+def _yaml_comments(yaml_file):
+    '''
+    Map every key path of a YAML file to the comment written after it on the same
+    line, e.g. ("refpick", "kmer_length") -> "set the kmer length (bp) (int)".
+    PyYAML drops comments, so the file is read line by line and the indentation
+    tells which section a key belongs to.
+    '''
+    _comments, _stack = {}, []          # _stack: (indent, key) of the sections we are in
+    with open(yaml_file) as _fh:
+        for _line in _fh:
+            _m = re.match(r"^(\s*)([A-Za-z0-9_.-]+):(.*)$", _line.rstrip("\n"))
+            if not _m or _line.lstrip().startswith("#"):
+                continue
+            _indent, _key, _rest = len(_m.group(1)), _m.group(2), _m.group(3)
+            while _stack and _stack[-1][0] >= _indent:      # we left a section
+                _stack.pop()
+            # the comment starts at the first "#" that is not inside quotes
+            _quote, _comment = None, ""
+            for _i, _ch in enumerate(_rest):
+                if _ch in "\"'":
+                    _quote = None if _quote == _ch else (_quote or _ch)
+                elif _ch == "#" and _quote is None:
+                    _comment = _rest[_i + 1:].strip()
+                    break
+            _comments[tuple(_k for _, _k in _stack) + (_key,)] = _comment
+            _stack.append((_indent, _key))
+    return _comments
+
+def _type_name(value):
+    if isinstance(value, bool):
+        return "yes/no"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    return "text"
+
+if "help" in config:
+    _comments = _yaml_comments(DEFAULT_CONFIG)
+    _lines = [
+        "",
+        "noHiC - arguments for:  snakemake --cores N --config name=value [name=value ...]",
+        "Example: snakemake --cores 20 --config reads=hifi.fastq.gz prefix=SB14122 pk_k=31",
+        "",
+        "An argument that is not given, or given empty (pk_k=), keeps the default below.",
+        f"Defaults are read from: {os.path.normpath(DEFAULT_CONFIG)}",
+        "Thread numbers are set with --cores N (or --local-cores N with a cluster executor).",
+    ]
+    _section = None
+    _width = {}
+    _default_width = {}                                                              
+    for _a, _p in ARGS.items():
+        _g = _p[:2] if len(_p) > 2 else _p[:1]           # ("eval", "slurm") or e.g. ("global",)
+        _width[_g] = max(_width.get(_g, 0), len(_a) + 2)
+        # [FIX 5] default column = longest default of the group + 2, so the descriptions line up
+        _default_width[_g] = max(_default_width.get(_g, 0), len(repr(_get(_DEFAULTS, _p))) + 2)
+    _type_width = max(len(_type_name(_get(_DEFAULTS, _p))) for _p in ARGS.values()) + 2
+    for _arg, _path in ARGS.items():
+        if _path[0] != _section:                        # new section -> header line
+            _section = _path[0]
+            _lines += ["", f"[{_section}]"]
+        _default = _get(_DEFAULTS, _path)
+        _g = _path[:2] if len(_path) > 2 else _path[:1]                             
+        _w = _width[_g]                                                              
+        _head = (f"  {_arg:<{_w}}{_type_name(_default):<{_type_width}}"
+                 f"default: {_default!r:<{_default_width[_g]}}")
+        if _comments.get(_path):
+            _lines += textwrap.wrap(_comments[_path], width=max(120, len(_head) + 40),
+                                    initial_indent=_head, subsequent_indent=" " * len(_head))
+        else:
+            _lines.append(_head.rstrip())
+    print("\n".join(_lines) + "\n", file=sys.stderr)
+    sys.exit(0)                                         # stop here: nothing is run
+
+#---- Apply the arguments ----#
+
+# A config file given with --configfile still works: its sections are laid over the defaults.
+
+update_config(_DEFAULTS, {k: v for k, v in config.items() if k in _DEFAULTS})
+
+_given = []
+for _arg, _value in config.items():
+    if _arg in _DEFAULTS:                        # a section from --configfile, handled above
+        continue
+    if _arg not in ARGS:                         # not a legal argument -> stop with a hint
+        _close = difflib.get_close_matches(_arg, ARGS, n=3)
+        raise WorkflowError(f"ERROR: unknown argument '{_arg}'."
+                            + (f" Did you mean: {', '.join(_close)}?" if _close else ""))
+    if _value is None or str(_value).strip() == "":   # empty argument -> keep the default
+        continue
+    _path = ARGS[_arg]                                # e.g. "reads" -> ("global", "reads")
+    _set(_DEFAULTS, _path, _as_default_type(_value, _get(_DEFAULTS, _path), _arg))
+    _given.append(f"{_arg}={_get(_DEFAULTS, _path)!r}  ->  {': '.join(_path)}")
+
+if _given:
+    print("noHiC: arguments from the command line:\n  " + "\n  ".join(_given), file=sys.stderr)
+
+#---- Global thread num settings ----#
+
+# WF_THREADS is the number given to "snakemake --cores N". With a cluster executor, "--local-cores N" is used instead.
+# It is written into every thread key of the config; the CRAQ keys get 5 fewer (at least 1). 
+# A thread argument given in --config (e.g. pk_kmc_t=8) is kept.
+
+_THREAD_KEYS = [
+    ("refpick", "kmc_threads"), ("refpick", "vg_threads"), ("refpick", "patch_threads"),
+    ("refpolish", "threads"),
+    ("clean", "adapter_detection_thread"), ("clean", "kraken2_thread"), ("clean", "blastn_thread"),
+    ("asm", "inspector_threads"), ("asm", "ragtag_threads"), ("asm", "gap_closing_threads"),
+    ("eval", "contiguity_threads"), ("eval", "gene_space_compl_eval_threads"),
+    ("eval", "inspector_threads"), ("eval", "viz_threads"),
+]
+_CRAQ_THREAD_KEYS = [("asm", "craq_threads"), ("eval", "craq_threads")]
+
+_res = workflow.resource_settings
+WF_THREADS = getattr(_res, "local_cores", None) or _res.cores    # None if neither was given
+
+if WF_THREADS:
+    WF_THREADS = int(WF_THREADS)
+    _craq_threads = max(1, WF_THREADS - 5)
+    # thread keys set explicitly in --config (non-empty value) are left alone
+    _cli_paths = {ARGS[_a] for _a, _v in config.items()
+                  if _a in ARGS and _v is not None and str(_v).strip() != ""}
+    for _path in _THREAD_KEYS + _CRAQ_THREAD_KEYS:
+        if _path in _cli_paths:
+            continue
+        _set(_DEFAULTS, _path, _craq_threads if _path in _CRAQ_THREAD_KEYS else WF_THREADS)
+    print(f"noHiC: threads from --cores: {WF_THREADS} (CRAQ: {_craq_threads})", file=sys.stderr)
+
+# Update the final config for pipeline execution
+config.clear()
+config.update(_DEFAULTS)
 
 _stages = config.get("stages", {}) # this will have the value of an empty dictionary if the "stages" section in yaml file is removed. Otherwise --> crashed
 
@@ -82,11 +393,14 @@ _global = config.get("global", {})
 PARAM_MAPPINGS = {
     "refpick": {
         "nohic_env_path": "nohic_env_path",
-        "seq_file": "reads"
+        "seq_file": "reads",
+        "prefix": "prefix"                          # [NEW 1]
     },
     "refpolish": {
         "nohic_env_path": "nohic_env_path",
-        "reads": "reads"
+        "reads": "reads",
+        "prefix": "prefix",                         # [NEW 1]
+        "coverage": "sequencing_coverage"           # [NEW 1]
     },
     "clean": {
         "nohic_env_path": "nohic_env_path"
@@ -95,13 +409,15 @@ PARAM_MAPPINGS = {
         "nohic_env_path": "nohic_env_path",
         "reads": "reads",
         "sequencing_platform": "sequencing_platform",
-        "sequencing_coverage": "sequencing_coverage"
+        "sequencing_coverage": "sequencing_coverage",
+        "out_prefix": "prefix"                      # [NEW 1]
     },
     "eval": {
         "nohic_env_path": "nohic_env_path",
         "reads": "reads",
         "sequencing_platform": "sequencing_platform",
-        "sequencing_coverage": "sequencing_coverage"
+        "sequencing_coverage": "sequencing_coverage",
+        "busco_out_prefix": "prefix"                # [NEW 1]
     }
 }
 
