@@ -127,7 +127,7 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 | Config keys | CI arguments | Description |
 |---|---|---|
 | `assembly` | `ev_asm` | *[chained]* Takes the final assembly from `nohic-asm` by default. |
-| `reference_genome` | `ev_ref` | *[chained]* Takes the synref from `nohic-refpick` or `nohic-refpolish` by default. You can also fill in the path to a real reference genome to compare against. Required when QUAST or the dot plot visualization is enabled. |
+| `reference_genome` | `ev_ref` | *[chained]* Takes the synref from `nohic-refpick` or `nohic-refpolish` by default. You can also fill in the path to a real reference genome to compare against. **Required when QUAST or the dot plot visualization is enabled**. |
 | `out_dir` | `ev_out` | Output directory of the `nohic-eval` stage (default: Eval.outdir). |
 | `contiguity_evaluation_tool` | `ev_contig_tool` | The tool used to calculate contiguity metrics. Fill in `"gfastats"`, `"quast"`, or `"no"` (to turn this step off). Use `"gfastats"` when you don't need the NGA50 and auNGA values. Default: quast. |
 | `contiguity_threads` | `ev_contig_t` | Number of threads for the contiguity metric calculations (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
