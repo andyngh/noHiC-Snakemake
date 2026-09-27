@@ -13,8 +13,6 @@
 # A profile given with --workflow-profile replaces profiles/default entirely, so the
 # generally useful settings are repeated here.
 
-configfile: config/nohic.yaml
-
 executor: slurm
 
 # Maximum number of eval jobs queued at the same time. The heavy rules are independent,
