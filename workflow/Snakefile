@@ -238,7 +238,6 @@ if "help" in config:
     for _a, _p in ARGS.items():
         _g = _p[:2] if len(_p) > 2 else _p[:1]           # ("eval", "slurm") or e.g. ("global",)
         _width[_g] = max(_width.get(_g, 0), len(_a) + 2)
-        # [FIX 5] default column = longest default of the group + 2, so the descriptions line up
         _default_width[_g] = max(_default_width.get(_g, 0), len(repr(_get(_DEFAULTS, _p))) + 2)
     _type_width = max(len(_type_name(_get(_DEFAULTS, _p))) for _p in ARGS.values()) + 2
     for _arg, _path in ARGS.items():
@@ -394,13 +393,13 @@ PARAM_MAPPINGS = {
     "refpick": {
         "nohic_env_path": "nohic_env_path",
         "seq_file": "reads",
-        "prefix": "prefix"                          # [NEW 1]
+        "prefix": "prefix"                          
     },
     "refpolish": {
         "nohic_env_path": "nohic_env_path",
         "reads": "reads",
-        "prefix": "prefix",                         # [NEW 1]
-        "coverage": "sequencing_coverage"           # [NEW 1]
+        "prefix": "prefix",                         
+        "coverage": "sequencing_coverage"           
     },
     "clean": {
         "nohic_env_path": "nohic_env_path"
@@ -410,14 +409,14 @@ PARAM_MAPPINGS = {
         "reads": "reads",
         "sequencing_platform": "sequencing_platform",
         "sequencing_coverage": "sequencing_coverage",
-        "out_prefix": "prefix"                      # [NEW 1]
+        "out_prefix": "prefix"                      
     },
     "eval": {
         "nohic_env_path": "nohic_env_path",
         "reads": "reads",
         "sequencing_platform": "sequencing_platform",
         "sequencing_coverage": "sequencing_coverage",
-        "busco_out_prefix": "prefix"                # [NEW 1]
+        "busco_out_prefix": "prefix"                
     }
 }
 
