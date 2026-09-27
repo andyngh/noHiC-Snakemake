@@ -162,7 +162,7 @@ heavy rules. Use the following CI arguments for SLURM setting.
 | `slurm_account` | '' | Set the SLURM account. "" if your cluster does not use accounts. |
 | `slurm_time` | 24h | Set the wall time for each evaluation step (e.g., "4h", "2d"; "" = partition default). |
 
-The above settings are for every steps of `nohic-eval`. You can also set the resource requirements specifically for a step. Check the help message for details.
+The above settings are for all steps of `nohic-eval`. You can also set the resource requirements specifically for a step. Check the help message for details.
 
 ```bash
 snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile --config help=yes
