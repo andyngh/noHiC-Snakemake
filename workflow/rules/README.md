@@ -1,28 +1,5 @@
 # Sub-workflows
 
-## How the sub-workflows are imported into the master Snakefile
-
-The five `*.c.smk` files in this directory are the stages of noHiC. Each one is a
-complete, self-contained Snakemake workflow, and each is imported by
-[`../Snakefile`](../Snakefile) using Snakemake's `module` / `use rule *` syntax:
-
-```python
-module asm_wf:
-    snakefile: _smk("asm")        # imports the Snakefile workflow/rules/nohic-asm.c.smk
-    config:    CFG["asm"]         # takes the "asm:" section of config/nohic.yaml
-use rule * from asm_wf as asm_*
-```
-
-After being imported into the master [`Snakefile`](../Snakefile), **rule names get a stage
-prefix.** For example, `Scaffolding` (from `nohic-asm`) becomes `asm_Scaffolding`, and
-`QUAST` (from `nohic-eval`) becomes `eval_QUAST`.
-
-`../Snakefile` finds these `*.c.smk` files through `workflow.basedir`, so **they must stay
-in this directory under these exact names**.
-
-Each rule writes a `.log` file next to its outputs and echoes the exact command it ran, so
-a log file is a reproducible record of the call.
-
 ---
 
 ## `nohic-refpick.c.smk` rules and outputs
