@@ -51,7 +51,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `hapl` | `pk_hapl` | *[Required]* Path to the `.hapl` index of your pangenome graph. |
 | `vg_threads` | `pk_vg_t` | Number of threads for the haplotype sampling and synref extraction steps (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
 | `patch_synref` | `pk_patch` | Fill in `"yes"` or `"no"`. Patches the synref using sequence from a donor genome (default: no). |
-| `donor_genome` | `pk_donor` | **Required when `patch_synref=yes`.** Path to a high-quality donor genome for synref patching (ideally a gapless genome). |
+| `donor_genome` | `pk_donor` | **Required when `pk_patch=yes`.** Path to a high-quality donor genome for synref patching (ideally a gapless genome). |
 | `patch_threads` | `pk_patch_t` | Number of threads for synref patching (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
 
 ## Section 4. `[refpolish]` - Polishing your reference genome
