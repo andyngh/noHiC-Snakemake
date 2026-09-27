@@ -8,12 +8,6 @@
 # site-specific belongs in a profile of its own (see ../slurm/config.yaml).
 # Disable it entirely with `--workflow-profile none`.
 
-# The master Snakefile contains `configfile: "nohic.yaml"`, which Snakemake resolves
-# relative to the working directory and which therefore does not exist at the repository
-# root. Supplying the real config here makes that line harmless and saves typing
-# --configfile on every invocation.
-configfile: config/nohic.yaml
-
 # Echo the command line of every job. The rules also write their commands to their log
 # files, but having them on screen makes a failing run much easier to follow.
 printshellcmds: true
