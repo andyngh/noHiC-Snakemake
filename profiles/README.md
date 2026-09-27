@@ -13,9 +13,7 @@ Two things to keep in mind:
 
 - **`default/` is not merged with a profile you name explicitly.** `--workflow-profile
   profiles/slurm` *replaces* it, which is why `slurm/config.yaml` repeats the general
-  settings. Use `--workflow-profile none` to switch profiles off completely — you must
-  then pass `--configfile config/nohic.yaml` yourself, or the workflow aborts at the
-  `configfile: "nohic.yaml"` line in `workflow/Snakefile`.
+  settings. Use `--workflow-profile none` to switch profiles off completely.
 - **A workflow profile is not the place for cluster resources.** In noHiC, the memory,
   partition, account, and wall time of the queued rules are set in the `eval.slurm`
   section of `config/nohic.yaml`, and the eval sub-workflow turns them into Snakemake
