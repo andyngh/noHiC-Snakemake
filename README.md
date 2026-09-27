@@ -93,11 +93,11 @@ Set up conda environments for noHiC:
 ```bash
 # Change to the noHiC-Snakemake directory
 cd /path/to/noHiC-Snakemake
+# Activate the "snakemake" environment
+conda activate snakemake
 # Set up the conda environments
 chmod +x ./setup.sh
 ./setup.sh
-# Activate the "snakemake" environment
-conda activate snakemake
 ```
 
 ## Tutorial
