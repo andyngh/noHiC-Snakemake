@@ -198,56 +198,37 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
 
 ## Outputs
 
-Each stage writes into its own directory, named in the config file. The main output
+Each stage of noHiC writes into its own directory, with names given via the command-line arguments. The main output
 files in each directory are listed below. See
 [`workflow/rules/README.md`](workflow/rules/README.md) for detailed lists of the outputs
 of each assembly stage.
 
-- `CAMA-C-2.refpick/CAMA-C-2.synref.fa` — the synref of CAMA-C-2
-- `CAMA-C-2.refpolish/CAMA-C-2.synref.hypo.fasta` — the polished synref
-- `CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa` — the clean CAMA-C-2 contigs
-- `CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa` — the final assembly (located in `CAMA-C-2.asm/4_Scaffolding/` if gap closing is turned off)
-- `CAMA-C-2.eval/1_Contiguity_metrics/report.tsv` — QUAST contiguity metrics of the final assembly
-- `CAMA-C-2.eval/2_Gene_space_completeness/summary.txt` — the main compleasm output for gene-space completeness
-- `CAMA-C-2.eval/3_CRAQ/runAQI_out/out_final.Report` — contains the R- and S-AQI (regional and structural assembly quality indices)
-- `CAMA-C-2.eval/4_Inspector/summary_statistics` — contains the QV
-- `CAMA-C-2.eval/5_Visualization/query_to_reference.paf.png` — the generated dot plot
-
-The name of the final assembly reflects which `nohic-asm` steps were run: the prefix
-gains `.craq`, `.inspector`, and `.rt_corr` for each enabled correction step, then
-`.scf`, and finally `.tgs` if gap closing was run.
+- `CAMA-C-2.refpick/CAMA-C-2.synref.fa` (the synref of CAMA-C-2)
+- `CAMA-C-2.refpolish/CAMA-C-2.hypo.fasta` (the polished synref)
+- `CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa` (the clean CAMA-C-2 contigs)
+- `CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa` (the final assembly. It can be located in `CAMA-C-2.asm/4_Scaffolding/` if gap closing is turned off.)
+- `CAMA-C-2.eval/1_Contiguity_metrics/report.tsv` (QUAST contiguity metrics of the final assembly)
+- `CAMA-C-2.eval/2_Gene_space_completeness/summary.txt` (the main compleasm output for gene-space completeness)
+- `CAMA-C-2.eval/3_CRAQ/runAQI_out/out_final.Report` (contains the R- and S-AQI, i.e., regional and structural assembly quality indices)
+- `CAMA-C-2.eval/4_Inspector/summary_statistics` (contains the QV)
+- `CAMA-C-2.eval/5_Visualization/query_to_reference.paf.png` (the generated dot plot)
 
 Every rule writes a `.log` file next to its outputs, containing the exact command line
 that was executed.
 
 ## How the stages of noHiC are wired together
 
-The `stages` key in the config file contains a switch for each sub-workflow. You can run
+The [stages] command-line section contains a switch for each sub-workflow. You can run
 all stages or select one or several of them.
-
-```yaml
-# Fill in "yes"/"no" to turn a stage on/off.
-stages:
-  refpick:   "yes"
-  refpolish: "yes"
-  clean:     "yes"
-  asm:       "yes"
-  eval:      "yes"
-```
 
 The master workflow (`workflow/Snakefile`) performs four tasks:
 
 1. **Fills in global values for the stages that need them.**
 
-   In `config/nohic.yaml`, the keys under `global:` (`nohic_env_path`, `reads`,
-   `sequencing_platform`, and `sequencing_coverage`) are copied into every stage that
+   The command-line arguments under `[global]` (`env`, `reads`,
+   `platform`, `cov`, and `prefix`) are copied into every stage that
    needs them. A value written inside a stage section always wins; a key that is left
    empty or missing takes the global value.
-
-   For example, the `seq_file:` key of `refpick:` takes the value of the `reads:` key of
-   `global:` by default. You can fill in the path to a different file (e.g., a FASTA file
-   containing the contigs of your target genome) in `seq_file:`. That FASTA file will
-   then be used by `nohic-refpick` instead of the FASTQ file given in `reads:`.
 
 2. **Chains the stages.**
 
@@ -261,21 +242,20 @@ The master workflow (`workflow/Snakefile`) performs four tasks:
    clean ──(decontaminated contigs)───────────────────► asm ──(final assembly)──► eval
    ```
 
-   - The `synref:` key of `refpolish` takes the result of `refpick` (the patched or unpatched synref).
-   - The `contigs:` key of `asm` takes the result of `clean` (i.e., the decontaminated contig assembly).
-   - The `assembly:` key of `eval` takes the scaffolded assembly from `asm`.
-   - The `reference_genome:` key of `asm` and `eval` takes the synref from `refpolish`, or the result of `refpick` if `refpolish` is off.
+   - The `pl_ref` argument of `refpolish` takes the result of `refpick` (the patched or unpatched synref).
+   - The `as_ctg` argument of `asm` takes the result of `clean` (i.e., the decontaminated contig assembly).
+   - The `ev_asm` argument of `eval` takes the scaffolded assembly from `asm`.
+   - The `as_ref` and `ev_ref` arguments of `asm` and `eval`, respectively take the synref from `refpolish`, or the result of `refpick` if `refpolish` is off.
 
    Chaining only happens from a stage that is **switched on** (set to `"yes"`). If you
    switch a stage off (set it to `"no"`), you must fill in its downstream input manually.
-   For example, if you don't want to generate the synref (from `refpick` and `refpolish`), you can set `stage: refpick: ` and `stage: refpolish: ` to "no" and fill in the `reference_genome:` key of `asm` and `eval` with the path to your own reference genome. noHiC will then use that reference genome for scaffolding and evaluation.
 
-3. **Validates the config before anything runs.**
+3. **Validates the workflow configuration.**
 
-   If there are errors in the config file (e.g., missing required inputs), you get one
+   If there are errors in the workflow configuration (e.g., missing required inputs), you will get one
    readable message instead of an error deep inside a sub-workflow. The workflow checks
-   that every required key of the enabled stages is present, that all stages use the same
-   `nohic_env_path`, and that no two stages write into the same output directory.
+   that every required argument of the enabled stages is present, that all stages use the same
+   conda environment, and that no two stages write into the same output directory.
 
 4. **Imports each enabled sub-workflow as a module to be executed.**
 
@@ -286,11 +266,9 @@ The master workflow (`workflow/Snakefile`) performs four tasks:
 
 | Message | Cause |
 |---|---|
-| `Workflow defines configfile nohic.yaml but it is not present` | No config file was supplied. Pass `--configfile config/nohic.yaml` or keep the default profile. |
-| `the workflow stage: X is not mentioned in the config file` | A stage is set to `"yes"` in `stages:` but has no section of its own. |
-| `the key X needs to be in the global section` | A stage left a key empty and there is no `global:` value to take. |
-| `the following keys are missing from the config file` | Keys normally filled in by an earlier stage have to be given by hand when that stage is off. |
-| `all stages have to use the same 'nohic_env_path'` | `shell.prefix` is global in Snakemake, so all enabled stages must use one environment. |
+| `the key X needs to be in the global section` | A stage left a key empty and there is no `[global]` value to take. |
+| `the following keys are missing from the config file` | Arguments normally filled in by an earlier stage have to be manually given when that stage is off. |
+| `all stages have to use the same 'nohic_env_path'` | All enabled stages must use one environment. |
 | `every stage needs its own output directory` | Two stages share an `out_dir` and would overwrite each other's marker files. |
 | `Your contigs contain adapters!` | `clean` stopped on purpose. Check `1_adapter_check/*.adapter_positions.bed` and trim the adapters before continuing. |
 | CRAQ fails immediately | CRAQ requires a **non-existent** output directory. The rule removes it first, so do not run two CRAQ rules into the same path concurrently. |
