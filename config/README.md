@@ -28,7 +28,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 
 | Config keys | CI arguments | Notes |
 |---|---|---|
-| `nohic_env_path` | `env` | Path to the downloaded noHiC environment containing the tools (automatically filled in by `setup.sh`). |
+| `nohic_env_path` | `env` | Path to the downloaded noHiC environment containing the tools (automatically filled in by `env_setup.sh`). |
 | `reads` | `reads` | *[Required]* Path to your error-corrected long reads (`.fastq`, may be gzipped). |
 | `sequencing_platform` | `platform` | Your sequencing platform. Fill in one of the following values: `clr`, `hifi`, `ont`, `corrected_clr`, `corrected_ont` (default: hifi). |
 | `sequencing_coverage` | `cov` | The estimated sequencing coverage (int). Default: 10. |
