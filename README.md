@@ -49,7 +49,7 @@ noHiC-Snakemake/
 │   ├── nohic.yaml                     # Config file for the whole noHiC workflow
 │   └── README.md                      # Explanation of every configuration key
 ├── profiles/
-│   ├── default/config.yaml            # Picked up automatically; points to config/nohic.yaml
+│   ├── default/config.yaml            
 │   ├── slurm/config.yaml              # Cluster profile for the evaluation stage (nohic-eval)
 │   └── README.md
 ├── workflow/
