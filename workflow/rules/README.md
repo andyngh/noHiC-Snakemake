@@ -10,7 +10,7 @@
 | `haplotype_sampling` | `vg haplotypes` | Personalized graph for the target genome (`{prefix}.gbz`) |
 | `synref_extracting` | `vg paths` | The synref for your target genome (`{prefix}.synref.fa`) **[main output]** |
 
-When `patch_synref: "yes"`, four more rules are executed to close the gaps in the
+When `pk_patch=yes`, four more rules are executed to close the gaps in the
 generated synref using sequence from a donor genome:
 
 | Rule | Tool | Output |
@@ -52,7 +52,7 @@ All rules log to a single file, `reference_polishing.log`.
 | `taxonkit` | `taxonkit lineage` | TaxonKit lineage output (`{sample}.lineage`) |
 | `contaminant_ctgs_identification` | grep/cut/sort | Identified contaminant contigs (`{sample}.contaminant_ctgs.txt`) **[main output]** |
 
-**`3_organellar_DNA_check/`** (only when `org_ctg_identification: "yes"`)
+**`3_organellar_DNA_check/`** (only when `cl_org=yes`)
 
 | Rule | Tool | Output |
 |---|---|---|
