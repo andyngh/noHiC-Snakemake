@@ -96,8 +96,8 @@ cd /path/to/noHiC-Snakemake
 # Activate the "snakemake" environment
 conda activate snakemake
 # Set up the conda environments
-chmod +x ./setup.sh
-./setup.sh
+chmod +x ./env_setup.sh
+./env_setup.sh
 ```
 
 ## Tutorial
