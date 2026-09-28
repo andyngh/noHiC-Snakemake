@@ -6,7 +6,7 @@ produces a complete job graph — without any data or bioinformatics tools being
 
 ```bash
 cd .test
-bash setup.sh
+bash test_setup.sh
 snakemake --snakefile ../workflow/Snakefile \
           --configfile config/nohic.yaml \
           --workflow-profile none \
