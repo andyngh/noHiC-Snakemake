@@ -15,7 +15,7 @@ sample's own reads, polishes that reference with the same reads, and uses it to 
 and scaffold the contigs.
 
 The workflow consists of five sub-workflows that can be switched on and off
-independently, all driven by a single configuration file:
+independently:
 
 | # | Stage       | Sub-workflow             | Computational tasks |
 |---|-------------|--------------------------|---------------------|
