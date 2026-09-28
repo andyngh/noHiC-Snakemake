@@ -145,7 +145,7 @@ cd /path/to/your/working/directory
 ```
 
 noHiC can be executed by parsing inputs via command-line arguments. Detailed descriptions of the command-line arguments can be found in
-[`config/README.md`](config/README.md). Alternatively, you can also check the available arguments using the help message.
+[`config/README.md`](config/README.md). Alternatively, you can check the available arguments using the help message.
 
 ```bash
 snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile --config help=yes
@@ -245,7 +245,7 @@ The master workflow (`workflow/Snakefile`) performs four tasks:
    - The `pl_ref` argument of `refpolish` takes the result of `refpick` (the patched or unpatched synref).
    - The `as_ctg` argument of `asm` takes the result of `clean` (i.e., the decontaminated contig assembly).
    - The `ev_asm` argument of `eval` takes the scaffolded assembly from `asm`.
-   - The `as_ref` and `ev_ref` arguments of `asm` and `eval`, respectively take the synref from `refpolish`, or the result of `refpick` if `refpolish` is off.
+   - The `as_ref` and `ev_ref` arguments of `asm` and `eval`, respectively, take the synref from `refpolish`, or the result of `refpick` if `refpolish` is off.
 
    Chaining only happens from a stage that is **switched on** (set to `"yes"`). If you
    switch a stage off (set it to `"no"`), you must fill in its downstream input manually.

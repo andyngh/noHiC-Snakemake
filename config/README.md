@@ -44,7 +44,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `kmer_length` | `pk_k` | K-mer length (bp) for KMC-based k-mer counting (default: 29). |
 | `memory` | `pk_mem` | Memory (in GB) for KMC-based k-mer counting (default: 32). |
 | `kmc_mode` | `pk_kmc_mode` | Depends on `seq_file`. Fill in `"fq"` for FASTQ input or `"fm"` for FASTA input (default: fq). |
-| `prefix` | `pk_prefix` | *[chained]* Set outputs' prefix. Take "global: prefix" by default. |
+| `prefix` | `pk_prefix` | *[chained]* Sets outputs' prefix. Takes "global: prefix" by default. |
 | `kmc_out_dir` | `pk_out` | Output directory of the `nohic-refpick` stage. Must be unique across stages (default: Refpick.outdir). |
 | `kmc_threads` | `pk_kmc_t` | Number of threads for KMC (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
 | `gbz` | `pk_gbz` | *[Required]* Path to a pangenome graph in GBZ format. |
@@ -62,10 +62,10 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `mapping_preset` | `pl_preset` | minimap2 preset used to map the reads of your target genome to the reference. Values can be `map-pb`, `map-hifi`, `map-ont`, or `map-iclr` (default: map-hifi). |
 | `threads` | `pl_t` | Number of threads for `nohic-refpolish` (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
 | `polish_tool` | `pl_tool` | The polishing tool to use. Fill in either `"hypo"` or `"racon"` (default: `"hypo"`). |
-| `coverage` | `pl_cov` | *[chained]* The estimated coverage of the reads on the reference genome. Used when `polish_tool: "hypo"`. By default, take sequencing coverage from "global: sequencing_coverage". |
+| `coverage` | `pl_cov` | *[chained]* The estimated coverage of the reads on the reference genome. Used when `polish_tool: "hypo"`. By default, takes sequencing coverage from "global: sequencing_coverage". |
 | `genome_size` | `pl_gsize` | *[Required]* The estimated reference genome size (e.g., `"720m"`, `"1g"`). Required when `polish_tool: "hypo"`. |
 | `out_dir` | `pl_out` | Output directory of the `nohic-refpolish` stage (default: Refpolish.outdir). |
-| `prefix` | `pl_prefix` | *[chained]* Basename of the polished reference. Take "global: prefix" by default. |
+| `prefix` | `pl_prefix` | *[chained]* Basename of the polished reference. Takes "global: prefix" by default. |
 
 ## Section 5. `[clean]` - Decontaminating your target contig assembly
 
@@ -94,7 +94,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `contigs` | `as_ctg` | *[chained]* Takes the decontaminated contigs from `nohic-clean` by default. |
 | `reference_genome` | `as_ref` | *[chained]* Takes the polished synref from `nohic-refpolish` (or the synref from `nohic-refpick` if `nohic-refpolish` is off) by default. You can also specify the path to a real reference genome here. |
 | `out_dir` | `as_out` | Output directory of the `nohic-asm` stage (default: Asm.outdir). |
-| `out_prefix` | `as_prefix` | *[chained]* Basename of the outputs.  Take "global: prefix" by default. |
+| `out_prefix` | `as_prefix` | *[chained]* Basename of the outputs. Takes "global: prefix" by default. |
 | `run_craq` | `as_craq` | Fill in `"yes"` to turn on CRAQ-based chimeric contig breaking or `"no"` to turn this step off (default: yes). |
 | `craq_threads` | `as_craq_t` | Number of threads for CRAQ; should be 5–6 lower than for the other steps (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `ignore_het` | `as_ignore_het` | Filling in `"yes"` lowers the CRAQ clipped-read threshold from 0.75 to 0.55. Use it when your contigs contain many heterozygous misjoins. Fill in `"no"` to use the default value (0.75) (default: no). |
@@ -135,7 +135,7 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 | `gene_space_compl_eval_threads` | `ev_gene_t` | Number of threads for the gene-space completeness evaluation (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `lineage` | `ev_lineage` | The BUSCO/compleasm lineage, e.g., `"poales"`, `"embryophyta"`, ... (default: `eukaryota`). |
 | `odb` | `ev_odb` | The OrthoDB release (default: `"odb12"`). |
-| `busco_out_prefix` | `ev_busco_prefix` | *[chained]* Output prefix for BUSCO. Used when `gene_space_compl_eval_tool: "busco"`. Take "global: prefix" by default. |
+| `busco_out_prefix` | `ev_busco_prefix` | *[chained]* Output prefix for BUSCO. Used when `gene_space_compl_eval_tool: "busco"`. Takes "global: prefix" by default. |
 | `run_craq` | `ev_craq` | Fill in `"yes"` to turn on CRAQ-based evaluation (to obtain the R- and S-AQI values) or `"no"` to turn this step off (default: yes). |
 | `craq_threads` | `ev_craq_t` | Number of threads for CRAQ; should be 5–6 lower than for the other steps (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `run_inspector` | `ev_inspector` | Fill in `"yes"` to obtain the Inspector QV and misassembly report or `"no"` to turn this step off (default: yes). |
@@ -152,14 +152,14 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 ## Using SLURM in `nohic-eval`
 
 Only the evaluation stage submits jobs. `use_slurm: "yes"` attaches SLURM resources to its
-heavy rules. Use the following CI arguments for SLURM setting.
+heavy rules. Use the following CI arguments for SLURM settings.
 
 | CI arguments | Defaults | Descriptions |
 |---|---|---|
 | `ev_slurm` | no | Fill in "yes" or "no" to use SLURM. |
 | `slurm_mem` | 250G | Set the memory requirement for SLURM jobs (e.g., "32000M" or "32G"). |
 | `slurm_partition` | '' | Set the SLURM partition. Leave it empty ("") to let the SLURM site default decide. |
-| `slurm_account` | '' | Set the SLURM account. "" if your cluster does not use accounts. |
+| `slurm_account` | '' | Set the SLURM account. Leave it empty ("") if your cluster does not use accounts. |
 | `slurm_time` | 24h | Set the wall time for each evaluation step (e.g., "4h", "2d"; "" = partition default). |
 
 The above settings are for all steps of `nohic-eval`. You can also set the resource requirements specifically for a step. Check the help message for details.
