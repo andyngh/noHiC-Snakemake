@@ -74,7 +74,7 @@ clean:
   out_dir: "Clean.outdir"              # Set the name of the output directory 
   adapters: ""                         # [Required] Path to a fasta file containing adapter sequences
   adapter_detection_thread: 1          # Set the thread number for the adapter checking step (int)
-  kraken2_db: ""                       # [Required] Path to a downloaded Kraken2 database. Fill in /dev/shm if you can copy the k2d files to this directory and set kraken2_memory_mapping: "yes"
+  kraken2_db: ""                       # [Required] Path to a downloaded Kraken2 database. Fill in /dev/shm if you can copy the k2d files to this directory and set cl_k2_mmap=yes
   kraken2_thread: 1                    # Set the thread number for Kraken2-based contig taxonomic classification (int)
   kraken2_memory_mapping: "no"         # Fill in "yes" if you want to use memory mapping mode or "no" to turn this mode off.
   taxonomic_group: "Viridiplantae"     # Fill in the target taxonomic group from which contigs should be collected
