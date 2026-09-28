@@ -8,8 +8,8 @@
 [![Tests](https://github.com/andyngh/noHiC-Snakemake/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/andyngh/noHiC-Snakemake/actions?query=branch%3Amain+workflow%3ATests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**noHiC** is a reference-guided contig scaffolding and evaluation workflow for long-read
-data (PacBio HiFi/CLR, ONT). It builds a *synthetic reference genome* (synref) from a
+**noHiC** is a reference-guided contig scaffolding and evaluation workflow for error-corrected long-read
+data (PacBio or ONT). It builds a *synthetic reference genome* (synref) from a
 pangenome graph by sampling the haplotype that best matches the k-mer content of the
 sample's own reads, polishes that reference with the same reads, and uses it to correct
 and scaffold the contigs.
