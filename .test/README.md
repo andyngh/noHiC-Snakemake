@@ -6,14 +6,14 @@ produces a complete job graph — without any data or bioinformatics tools being
 
 ```bash
 cd .test
-bash test_setup.sh
+bash setup.sh
 snakemake --snakefile ../workflow/Snakefile \
           --configfile config/nohic.yaml \
           --workflow-profile none \
           --dry-run --cores 2
 ```
 
-`test_setup.sh` creates empty placeholder files for every input named in
+`setup.sh` creates empty placeholder files for every input named in
 [`config/nohic.yaml`](config/nohic.yaml). The run is always a dry run, so nothing is ever
 read or executed. A successful run builds 44 jobs with all five stages enabled and every
 optional step switched on.
