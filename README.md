@@ -131,7 +131,7 @@ tar -xzf k2_pluspfp_16_GB_20260626.tar.gz
 ```
 
 > [!NOTE]
-> If you want to set `kraken2_memory_mapping: "yes"` in the config file, check the
+> If you want to set `cl_k2_mmap=yes` (enabling Kraken2's memory mapping mode) in the config file, check the
 > instructions in the previous
 > [noHiC](https://github.com/andyngh/noHiC/tree/main#32-nohic-cleansh-contaminant-contig-removal)
 > repository.
