@@ -13,7 +13,7 @@ snakemake --snakefile ../workflow/Snakefile \
           --dry-run --cores 2
 ```
 
-`setup.sh` creates empty placeholder files for every input named in
+`test_setup.sh` creates empty placeholder files for every input named in
 [`config/nohic.yaml`](config/nohic.yaml). The run is always a dry run, so nothing is ever
 read or executed. A successful run builds 44 jobs with all five stages enabled and every
 optional step switched on.
