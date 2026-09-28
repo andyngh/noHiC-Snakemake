@@ -179,10 +179,12 @@ jobs to different nodes, prepare an `.sbatch` script as follows:
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=<email>
 
-# Note: the memory and number of threads set in this sbatch script are used for nohic-refpick, -refpolish, -clean, and -asm.
-# nohic-eval submits its jobs to different nodes with the resource requirements set in the nohic.yaml file.
+# Note: the memory and number of threads set in this sbatch script are used for
+#       nohic-refpick, -refpolish, -clean, and -asm.
+# nohic-eval submits its jobs to different nodes with the resource requirements set via the command-line arguments.
 
-# Change to your working directory containing the example A. thaliana input files (not the noHiC-Snakemake directory)
+# Change to your working directory containing the
+#  example A. thaliana input files (not the noHiC-Snakemake directory)
 cd /path/to/your/working/directory
 # Run the pipeline
 
