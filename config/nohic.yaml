@@ -46,7 +46,7 @@ refpick:
   seq_file: ""                    # [chained] Take the fastq file from "global: reads: " by default.
   kmer_length: 29                 # set the kmer length (bp) (int)
   memory: 32                      # KMC memory in GB (int)
-  kmc_mode: "fq"                  # Fill in "fq" if seq_file is a fastq file and "fm" if it is a fasta file
+  kmc_mode: "fq"                  # Fill in "fq" if pk_seq is a fastq file and "fm" if it is a fasta file
   prefix: ""                      # [chained] Set outputs' prefix. Take "global: prefix" by default.
   kmc_out_dir: "Refpick.outdir"   # Name the output directory
   kmc_threads: 1                  # Set the thread number for KMC-based kmer counting (int)
@@ -54,7 +54,7 @@ refpick:
   hapl: ""                        # [Required] Path to the haplotype information (.hapl) file of the pangenome graph
   vg_threads: 1                   # Set the thread number for haplotype sampling and synref generation (int)
   patch_synref: "no"              # Fill in "yes" to patch gaps in the synref or "no" to turn this step off.
-  donor_genome: ""                # (Required if patch_synref: "yes") Path to a high-quality reference genome (aka. donor genome)for synref patching
+  donor_genome: ""                # (Required if pk_patch=yes) Path to a high-quality reference genome (aka. donor genome)for synref patching
   patch_threads: 1                # Set the thread number for patching the synref (int)
 
 # --- Section 4. Reference polishing (nohic-refpolish) -----------------------------------#
@@ -63,8 +63,8 @@ refpolish:
   mapping_preset: "map-hifi"      # Fill in "map-pb" / "map-hifi" / "map-ont" / "map-iclr"
   threads: 1                      # Set the thread number (int)
   polish_tool: "hypo"             # Fill in "hypo" or "racon"
-  coverage:                       # [chained] By default, take sequencing coverage from "global: sequencing_coverage" (int).
-  genome_size: ""                 # [Required] Fill in the estimated genome size if polish_tool: "hypo" (e.g., "720m", "1g")
+  coverage:                       # [chained] By default, take sequencing coverage from "global: cov" (int).
+  genome_size: ""                 # [Required] Fill in the estimated genome size if pl_tool=hypo (e.g., "720m", "1g")
   out_dir: "Refpolish.outdir"     # Name the output directory
   prefix: ""                      # [chained] Set the output prefix. Take "global: prefix" by default.
 
@@ -95,7 +95,7 @@ asm:
   inspector_threads: 1            # Fill in the thread number for Inspector (int)
   run_ragtag_correct: "yes"       # Fill in "yes" to enable reference-guided contig correction by RagTag or "no" to turn this step off.
   ragtag_threads: 1               # Fill in the thread number for RagTag-based correction and scaffolding (int)
-  preset: "luck"                  # Choose RagTag-based correction preset, including "draft" / "luck" / "standard" / "aggressive" / "raw" (default: "luck")
+  preset: "luck"                  # Choose RagTag-based correction preset, including "draft" / "luck" / "standard" / "aggressive" / "raw"
   run_gap_closing: "yes"          # Fill in "yes" to enable gap closing or "no" to turn this step off.
   gap_closing_threads: 1          # Fill in the thread number for gap closing (int)
 
@@ -122,7 +122,7 @@ eval:
   # SLURM settings for nohic-eval.
   # They only apply to the steps of this stage.
   # Since the evaluation steps of nohic-eval are independent, they will be sent to different nodes to be executed in parallel.
-  use_slurm: "no" # Fill in "yes" or "no"
+  use_slurm: "no" # Fill in "yes" if use want to use SLURM
   slurm:
     default:
       memory: "250G"              # Set the memory requirement for SLURM jobs (e.g., "32000M" or "32G")
@@ -132,37 +132,37 @@ eval:
     # The SLURM settings above are for all evaluation steps. If you want different settings for particular steps you can use the keys below.
     rules:
       GFAstats:
-        memory: ""                 # SLURM memory for the contiguity evaluation by gfastats (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""              # SLURM partition for the contiguity evaluation by gfastats. "" = use slurm: default: partition
-        account: ""                  # SLURM account for the contiguity evaluation by gfastats. "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the contiguity evaluation by gfastats (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                 # SLURM memory for the contiguity evaluation by gfastats (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""              # SLURM partition for the contiguity evaluation by gfastats. "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the contiguity evaluation by gfastats. "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the contiguity evaluation by gfastats (e.g., "4h"). "" = use the value from slurm_time
       QUAST:
-        memory: ""                   # SLURM memory for the contiguity evaluation by QUAST (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the contiguity evaluation by QUAST. "" = use slurm: default: partition
-        account: ""                  # SLURM account for the contiguity evaluation by QUAST. "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the contiguity evaluation by QUAST (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the contiguity evaluation by QUAST (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the contiguity evaluation by QUAST. "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the contiguity evaluation by QUAST. "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the contiguity evaluation by QUAST (e.g., "4h"). "" = use the value from slurm_time
       busco:
-        memory: ""                   # SLURM memory for the gene-space completeness evaluation by BUSCO (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the gene-space completeness evaluation by BUSCO. "" = use slurm: default: partition
-        account: ""                  # SLURM account for the gene-space completeness evaluation by BUSCO. "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the gene-space completeness evaluation by BUSCO (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the gene-space completeness evaluation by BUSCO (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the gene-space completeness evaluation by BUSCO. "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the gene-space completeness evaluation by BUSCO. "" = use use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the gene-space completeness evaluation by BUSCO (e.g., "4h"). "" = use the value from slurm_time
       compleasm:
-        memory: ""                   # SLURM memory for the gene-space completeness evaluation by compleasm (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the gene-space completeness evaluation by compleasm. "" = use slurm: default: partition
-        account: ""                  # SLURM account for the gene-space completeness evaluation by compleasm. "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the gene-space completeness evaluation by compleasm (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the gene-space completeness evaluation by compleasm (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the gene-space completeness evaluation by compleasm. "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the gene-space completeness evaluation by compleasm. "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the gene-space completeness evaluation by compleasm (e.g., "4h"). "" = use the value from slurm_time
       craq_based_evaluation:
-        memory: ""                   # SLURM memory for the CRAQ-based evaluation (S- and R-AQI) (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the CRAQ-based evaluation (S- and R-AQI). "" = use slurm: default: partition
-        account: ""                  # SLURM account for the CRAQ-based evaluation (S- and R-AQI). "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the CRAQ-based evaluation (S- and R-AQI) (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the CRAQ-based evaluation (S- and R-AQI) (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the CRAQ-based evaluation (S- and R-AQI). "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the CRAQ-based evaluation (S- and R-AQI). "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the CRAQ-based evaluation (S- and R-AQI) (e.g., "4h"). "" = use the value from slurm_time
       inspector_based_evaluation:
-        memory: ""                   # SLURM memory for the Inspector-based evaluation (QV) (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the Inspector-based evaluation (QV). "" = use slurm: default: partition
-        account: ""                  # SLURM account for the Inspector-based evaluation (QV). "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the Inspector-based evaluation (QV) (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the Inspector-based evaluation (QV) (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the Inspector-based evaluation (QV). "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the Inspector-based evaluation (QV). "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the Inspector-based evaluation (QV) (e.g., "4h"). "" = use the value from slurm_time
       assembly_to_reference_mapping:
-        memory: ""                   # SLURM memory for the assembly-to-reference mapping for the dot plot (e.g., "32G"). "" = use slurm: default: memory
-        partition: ""                # SLURM partition for the assembly-to-reference mapping for the dot plot. "" = use slurm: default: partition
-        account: ""                  # SLURM account for the assembly-to-reference mapping for the dot plot. "" = use slurm: default: account
-        wall_time: ""                # SLURM wall time for the assembly-to-reference mapping for the dot plot (e.g., "4h"). "" = use slurm: default: wall_time
+        memory: ""                   # SLURM memory for the assembly-to-reference mapping for the dot plot (e.g., "32G"). "" = use the value from slurm_mem
+        partition: ""                # SLURM partition for the assembly-to-reference mapping for the dot plot. "" = use the value from slurm_partition
+        account: ""                  # SLURM account for the assembly-to-reference mapping for the dot plot. "" = use the value from slurm_account
+        wall_time: ""                # SLURM wall time for the assembly-to-reference mapping for the dot plot (e.g., "4h"). "" = use the value from slurm_time
