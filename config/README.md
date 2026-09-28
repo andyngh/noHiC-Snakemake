@@ -43,7 +43,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `seq_file` | `pk_seq` | *[chained]* Reads for k-mer counting; defaults to `global: reads`. You can also fill in the path to a FASTA file containing the contigs of your target genome. |
 | `kmer_length` | `pk_k` | K-mer length (bp) for KMC-based k-mer counting (default: 29). |
 | `memory` | `pk_mem` | Memory (in GB) for KMC-based k-mer counting (default: 32). |
-| `kmc_mode` | `pk_kmc_mode` | Depends on `seq_file`. Fill in `"fq"` for FASTQ input or `"fm"` for FASTA input (default: fq). |
+| `kmc_mode` | `pk_kmc_mode` | Depends on `pk_seq`. Fill in `"fq"` for FASTQ input or `"fm"` for FASTA input (default: fq). |
 | `prefix` | `pk_prefix` | *[chained]* Sets outputs' prefix. Takes "global: prefix" by default. |
 | `kmc_out_dir` | `pk_out` | Output directory of the `nohic-refpick` stage. Must be unique across stages (default: Refpick.outdir). |
 | `kmc_threads` | `pk_kmc_t` | Number of threads for KMC (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
@@ -62,8 +62,8 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `mapping_preset` | `pl_preset` | minimap2 preset used to map the reads of your target genome to the reference. Values can be `map-pb`, `map-hifi`, `map-ont`, or `map-iclr` (default: map-hifi). |
 | `threads` | `pl_t` | Number of threads for `nohic-refpolish` (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake |
 | `polish_tool` | `pl_tool` | The polishing tool to use. Fill in either `"hypo"` or `"racon"` (default: `"hypo"`). |
-| `coverage` | `pl_cov` | *[chained]* The estimated coverage of the reads on the reference genome. Used when `polish_tool: "hypo"`. By default, takes sequencing coverage from "global: sequencing_coverage". |
-| `genome_size` | `pl_gsize` | *[Required]* The estimated reference genome size (e.g., `"720m"`, `"1g"`). Required when `polish_tool: "hypo"`. |
+| `coverage` | `pl_cov` | *[chained]* The estimated coverage of the reads on the reference genome. Used when `pl_tool=hypo`. By default, takes sequencing coverage from "global: cov". |
+| `genome_size` | `pl_gsize` | *[Required]* The estimated reference genome size (e.g., `"720m"`, `"1g"`). **Required when `pl_tool=hypo`**. |
 | `out_dir` | `pl_out` | Output directory of the `nohic-refpolish` stage (default: Refpolish.outdir). |
 | `prefix` | `pl_prefix` | *[chained]* Basename of the polished reference. Takes "global: prefix" by default. |
 
@@ -75,7 +75,7 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `out_dir` | `cl_out` | Output directory of the `nohic-clean` stage (default: Clean.outdir). |
 | `adapters` | `cl_adapters` | *[Required]* Path to a FASTA file containing the adapter sequences to screen for. |
 | `adapter_detection_thread` | `cl_adapter_t` | Number of threads for the adapter detection step (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
-| `kraken2_db` | `cl_k2db` | *[Required]* Path to a downloaded Kraken2 database directory. Fill in `/dev/shm` if `cl_k2_mmap=yes`; in this case, the downloaded Kraken2 database files (`*.k2d`) must be in `/dev/shm`. |
+| `kraken2_db` | `cl_k2db` | *[Required]* Path to a downloaded Kraken2 database directory. **Fill in `/dev/shm` if `cl_k2_mmap=yes`**; in this case, the downloaded Kraken2 database files (`*.k2d`) must be in `/dev/shm`. |
 | `kraken2_thread` | `cl_k2_t` | Number of threads for Kraken2 (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `kraken2_memory_mapping` | `cl_k2_mmap` | Fill in `"yes"` to use Kraken2's memory-mapping mode or `"no"` to turn this mode off (default: no). |
 | `taxonomic_group` | `cl_taxon` | The clade to **keep**. Contigs whose Kraken2 lineage does not contain this string are treated as contaminants. (default: Viridiplantae). |
@@ -127,7 +127,7 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 | Config keys | CI arguments | Description |
 |---|---|---|
 | `assembly` | `ev_asm` | *[chained]* Takes the final assembly from `nohic-asm` by default. |
-| `reference_genome` | `ev_ref` | *[chained]* Takes the synref from `nohic-refpick` or `nohic-refpolish` by default. You can also fill in the path to a real reference genome to compare against. **Required when QUAST or the dot plot visualization is enabled**. |
+| `reference_genome` | `ev_ref` | *[chained]* Takes the synref from `nohic-refpick` or `nohic-refpolish` by default. You can also fill in the path to a real reference genome to compare against. **Required when `ev_contig_tool=quast` or `ev-viz=yes`**. |
 | `out_dir` | `ev_out` | Output directory of the `nohic-eval` stage (default: Eval.outdir). |
 | `contiguity_evaluation_tool` | `ev_contig_tool` | The tool used to calculate contiguity metrics. Fill in `"gfastats"`, `"quast"`, or `"no"` (to turn this step off). Use `"gfastats"` when you don't need the NGA50 and auNGA values. Default: quast. |
 | `contiguity_threads` | `ev_contig_t` | Number of threads for the contiguity metric calculations (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
@@ -135,7 +135,7 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 | `gene_space_compl_eval_threads` | `ev_gene_t` | Number of threads for the gene-space completeness evaluation (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `lineage` | `ev_lineage` | The BUSCO/compleasm lineage, e.g., `"poales"`, `"embryophyta"`, ... (default: `eukaryota`). |
 | `odb` | `ev_odb` | The OrthoDB release (default: `"odb12"`). |
-| `busco_out_prefix` | `ev_busco_prefix` | *[chained]* Output prefix for BUSCO. Used when `gene_space_compl_eval_tool: "busco"`. Takes "global: prefix" by default. |
+| `busco_out_prefix` | `ev_busco_prefix` | *[chained]* Output prefix for BUSCO. **Used when `ev_gene_tool=busco`**. Takes "global: prefix" by default. |
 | `run_craq` | `ev_craq` | Fill in `"yes"` to turn on CRAQ-based evaluation (to obtain the R- and S-AQI values) or `"no"` to turn this step off (default: yes). |
 | `craq_threads` | `ev_craq_t` | Number of threads for CRAQ; should be 5–6 lower than for the other steps (default: 1). This argument is filled automatically via the `--cores` or `--local-cores` arguments of snakemake. |
 | `run_inspector` | `ev_inspector` | Fill in `"yes"` to obtain the Inspector QV and misassembly report or `"no"` to turn this step off (default: yes). |
@@ -151,7 +151,7 @@ See the detailed descriptions of the presets in our [preprint](https://doi.org/1
 
 ## Using SLURM in `nohic-eval`
 
-Only the evaluation stage submits jobs. `use_slurm: "yes"` attaches SLURM resources to its
+Only the evaluation stage submits jobs. The `ev_slurm=yes` argument attaches SLURM resources to its
 heavy rules. Use the following CI arguments for SLURM settings.
 
 | CI arguments | Defaults | Descriptions |
