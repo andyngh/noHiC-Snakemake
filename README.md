@@ -225,7 +225,7 @@ that was executed.
 
 ## How the stages of noHiC are wired together
 
-The [stages] command-line section contains a switch for each sub-workflow. You can run
+The `[stages]` command-line section contains a switch for each sub-workflow. You can run
 all stages or select one or several of them.
 
 The master workflow (`workflow/Snakefile`) performs four tasks:
