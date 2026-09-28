@@ -153,6 +153,9 @@ snakemake -s /path/to/noHiC-Snakemake/workflow/Snakefile --config help=yes
 
 The pipeline can be executed as follows (**All required arguments have been filled in**).
 
+>[!NOTE]
+>If you use ONT reads, you can check [this repo](https://github.com/Clipman-Lab/ONT_NCBI_contamination) for ONT adapter sequences.
+
 ```bash
 # Assuming that you have all inputs in the current working directory
 snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
