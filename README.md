@@ -168,7 +168,7 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
                   ev_lineage=brassicales \
                   pk_out=CAMA-C-2.refpick pl_out=CAMA-C-2.refpolish cl_out=CAMA-C-2.clean \
                   as_out=CAMA-C-2.asm ev_out=CAMA-C-2.eval \
-          --rerun-incomplete --cores 20
+          --rerun-incomplete --cores 25
 ```
 
 If you want to use SLURM to run the steps of `nohic-eval` in parallel by submitting the
