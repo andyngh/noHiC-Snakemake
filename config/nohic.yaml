@@ -28,7 +28,7 @@
 # Fill in "yes" or "no".
 stages:
   refpick:   "yes"     # Build (and patch) a synref
-  refpolish: "yes"     # Polish a synref or a real reference genome 
+  refpolish: "no"     # Polish a synref or a real reference genome 
   clean:     "yes"     # Check the presence of adapters in contigs and contaminant contig removal
   asm:       "yes"     # Contig correction, scaffolding, and gap closing
   eval:      "yes"     # Assembly evaluation
