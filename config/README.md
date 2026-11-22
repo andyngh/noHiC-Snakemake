@@ -17,7 +17,7 @@ Follow these conventions when parsing the CI arguments:
 | Config keys | CI arguments | Main tasks |
 |---|---|---|
 | `refpick` | `run_refpick` | Build (and patch) the synref using the provided pangenome graph (default: yes). |
-| `refpolish` | `run_refpolish` | Polish the synref or a real reference genome (default: yes). |
+| `refpolish` | `run_refpolish` | Polish the synref or a real reference genome (default: no). |
 | `clean` | `run_clean` | Decontaminate the target contig assembly (default: yes). |
 | `asm` | `run_asm` | Correct and scaffold the target contig assembly (default: yes). |
 | `eval` | `run_eval` | Check the quality of the final assembly (default: yes). |
