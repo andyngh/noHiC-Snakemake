@@ -67,6 +67,9 @@ A stage set to `"yes"` **must** have its own `[Required]` arguments filled in.
 | `out_dir` | `pl_out` | Output directory of the `nohic-refpolish` stage (default: Refpolish.outdir). |
 | `prefix` | `pl_prefix` | *[chained]* Basename of the polished reference. Takes "global: prefix" by default. |
 
+>[!NOTE]
+>This stage is disabled by default because it is computationally demanding and does not guarantee significant improvements to references.
+
 ## Section 5. `[clean]` - Decontaminating your target contig assembly
 
 | Config keys | CI arguments | Description |
