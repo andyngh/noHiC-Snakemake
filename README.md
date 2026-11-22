@@ -11,7 +11,7 @@
 **noHiC** is a reference-guided contig scaffolding and evaluation workflow for error-corrected long-read
 data (PacBio or ONT). It builds a *synthetic reference genome* (synref) from a
 pangenome graph by sampling the haplotype that best matches the k-mer content of the
-sample's own reads, polishes that reference with the same reads, and uses it to correct
+sample's own reads, optionally polishes that reference with the same reads, and uses it to correct
 and scaffold the contigs.
 
 The workflow consists of five sub-workflows that can be switched on and off
@@ -20,7 +20,7 @@ independently:
 | # | Stage       | Sub-workflow             | Computational tasks |
 |---|-------------|--------------------------|---------------------|
 | 1 | `refpick`   | `nohic-refpick.c.smk`    | Builds the best-fit reference for a target genome (synref) and optionally patches its gaps using sequence from a high-quality donor genome. |
-| 2 | `refpolish` | `nohic-refpolish.c.smk`  | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon. |
+| 2 | `refpolish` | `nohic-refpolish.c.smk`  | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon. This stage is turned off by default because it is computationally demanding and does not guarantee significant reference improvements.|
 | 3 | `clean`     | `nohic-clean.c.smk`      | Screens the contig assembly for adapters, decontaminates it using Kraken2/TaxonKit, and optionally removes organellar contigs. |
 | 4 | `asm`       | `nohic-asm.c.smk`        | Corrects the contigs (CRAQ, Inspector, and RagTag correct), performs reference-guided scaffolding (RagTag scaffold), and closes gaps (TGS-GapCloser). |
 | 5 | `eval`      | `nohic-eval.slurm.c.smk` | Assesses the scaffolded assembly in terms of contiguity, gene-space completeness, and structural correctness (based on QV, AQIs, and a dot plot). |
@@ -159,7 +159,7 @@ The pipeline can be executed as follows (**All required arguments have been fill
 ```bash
 # Assuming that you have all inputs in the current working directory
 snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
-         --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi \
+         --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi run_refpolish=yes \
                   pk_gbz=arabidopsis_pgMC.full.gbz pk_hapl=arabidopsis_pgMC.full.hapl \
                   pl_gsize=135m \
                   cl_ctg=CAMA-C-2.asm.bp.p_ctg.fa cl_adapters=PacBio_adapters.fa \
@@ -192,7 +192,7 @@ cd /path/to/your/working/directory
 # Run the pipeline
 
 snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
-         --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi \
+         --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi run_refpolish=yes \
                   pk_gbz=arabidopsis_pgMC.full.gbz pk_hapl=arabidopsis_pgMC.full.hapl \
                   pl_gsize=135m \
                   cl_ctg=CAMA-C-2.asm.bp.p_ctg.fa cl_adapters=PacBio_adapters.fa \
