@@ -20,7 +20,7 @@ independently:
 | # | Stage       | Sub-workflow             | Computational tasks |
 |---|-------------|--------------------------|---------------------|
 | 1 | `refpick`   | `nohic-refpick.c.smk`    | Builds the best-fit reference for a target genome (synref) and optionally patches its gaps using sequence from a high-quality donor genome. |
-| 2 | `refpolish` | `nohic-refpolish.c.smk`  | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon. This stage is turned off by default because it is computationally demanding and does not guarantee significant reference improvements.|
+| 2 | `refpolish` | `nohic-refpolish.c.smk`  | Polishes the synref or a real reference genome with the sample's reads using HyPo or Racon. **This stage is disabled by default because it is computationally demanding and does not guarantee significant improvements to references**.|
 | 3 | `clean`     | `nohic-clean.c.smk`      | Screens the contig assembly for adapters, decontaminates it using Kraken2/TaxonKit, and optionally removes organellar contigs. |
 | 4 | `asm`       | `nohic-asm.c.smk`        | Corrects the contigs (CRAQ, Inspector, and RagTag correct), performs reference-guided scaffolding (RagTag scaffold), and closes gaps (TGS-GapCloser). |
 | 5 | `eval`      | `nohic-eval.slurm.c.smk` | Assesses the scaffolded assembly in terms of contiguity, gene-space completeness, and structural correctness (based on QV, AQIs, and a dot plot). |
