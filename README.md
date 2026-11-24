@@ -165,7 +165,7 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
                   cl_k2db=/path/to/pluspfp16_k2_db cl_org=yes cl_org_ref=mt.cl.fasta \
                   ev_ref=GCA_946406975.1_CAMA-C-2.PacbioHiFiAssembly_genomic.ed.SELECTED.fa \
                   ev_lineage=brassicales \
-                  pk_out=CAMA-C-2.refpick pl_out=CAMA-C-2.refpolish cl_out=CAMA-C-2.clean \
+                  pk_out=CAMA-C-2.refpick cl_out=CAMA-C-2.clean \
                   as_out=CAMA-C-2.asm ev_out=CAMA-C-2.eval \
           --rerun-incomplete --cores 25
 ```
@@ -199,7 +199,7 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
                   ev_lineage=brassicales \
                   ev_slurm=yes slurm_partition=<your_partition> \
                   slurm_account=<your_account> slurm_mem=<memory_requirement> \
-                  pk_out=CAMA-C-2.refpick pl_out=CAMA-C-2.refpolish \
+                  pk_out=CAMA-C-2.refpick \
                   cl_out=CAMA-C-2.clean as_out=CAMA-C-2.asm ev_out=CAMA-C-2.eval \
           --rerun-incomplete --executor slurm --jobs 5 --local-cores ${SLURM_CPUS_PER_TASK}
 ```
@@ -213,7 +213,7 @@ of each assembly stage.
 
 - `CAMA-C-2.refpick/CAMA-C-2.synref.fa` (the synref of CAMA-C-2)
 
-(**If you set run-refpolish=yes:** `CAMA-C-2.refpolish/CAMA-C-2.hypo.fasta` - the polished synref)
+(**If you set run-refpolish=yes:** `<refpolish_outdir>/CAMA-C-2.hypo.fasta` - the polished synref)
 
 - `CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa` (the clean CAMA-C-2 contigs)
 - `CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa` (the final assembly. It can be located in `CAMA-C-2.asm/4_Scaffolding/` if gap closing is turned off.)
