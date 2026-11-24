@@ -212,7 +212,9 @@ files in each directory are listed below. See
 of each assembly stage.
 
 - `CAMA-C-2.refpick/CAMA-C-2.synref.fa` (the synref of CAMA-C-2)
+
 (**If you set run-refpolish=yes:** `CAMA-C-2.refpolish/CAMA-C-2.hypo.fasta` - the polished synref)
+
 - `CAMA-C-2.clean/4_assembly_decontamination/CAMA-C-2.asm.bp.p_ctg.pure.fa` (the clean CAMA-C-2 contigs)
 - `CAMA-C-2.asm/5_Gap_closing/CAMA-C-2.craq.inspector.rt_corr.scf.tgs.fa` (the final assembly. It can be located in `CAMA-C-2.asm/4_Scaffolding/` if gap closing is turned off.)
 - `CAMA-C-2.eval/1_Contiguity_metrics/report.tsv` (QUAST contiguity metrics of the final assembly)
