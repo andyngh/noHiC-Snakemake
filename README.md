@@ -170,7 +170,7 @@ snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
           --rerun-incomplete --cores 25
 ```
 
-The entire workflow, including synref generation, contig decontamination and correction, scaffolding, and final assembly evaluation, should require a peak memory usage of ~50 GB.  
+The entire workflow, including synref generation, contig decontamination and correction, scaffolding, gap closing, and final assembly evaluation, should require a peak memory usage of ~50 GB.  
 
 If you want to use SLURM to run the steps of `nohic-eval` in parallel by submitting the
 jobs to different nodes, prepare an `.sbatch` script as follows:
