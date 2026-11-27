@@ -108,10 +108,7 @@ to scaffold is *A. thaliana* CAMA-C-2.
 
 ### Preparing the HiFi reads
 
-To prepare the HiFi reads for this tutorial, install
-[SRA Toolkit](https://anaconda.org/channels/bioconda/packages/sra-tools/overview) and
-download the prebuilt binary of [TGSFilter](https://github.com/HuiyangYu/TGSFilter/releases/tag/v1.10).
-Then run the following commands:
+To prepare the HiFi reads for this tutorial, run the following commands (**all needed tools have been installed in the noHiC environment**):
 
 ```bash
 wget -c -O ERR10084604.sra https://sra-pub-run-odp.s3.amazonaws.com/sra/ERR10084604/ERR10084604
