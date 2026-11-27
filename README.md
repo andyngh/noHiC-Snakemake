@@ -102,9 +102,9 @@ chmod +x ./env_setup.sh
 
 ## Tutorial
 
-In this tutorial, we use the example files from the previous
+In this tutorial, we use the example input files from the previous
 [noHiC](https://github.com/andyngh/noHiC/tree/main/example) repository. The target genome
-to scaffold is *A. thaliana* CAMA-C-2.
+to scaffold is *A. thaliana* CAMA-C-2. You should download the files and put them in a working directory (not the `noHiC-Snakemake` directory).
 
 ### Preparing the HiFi reads
 
