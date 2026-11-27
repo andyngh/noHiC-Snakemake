@@ -5,7 +5,8 @@ mkdir -p $PWD/workflow/envs/noHiC
 mkdir -p $PWD/workflow/envs/compleasm
 
 # Download the environments
-wget https://zenodo.org/records/22880706/files/noHiC.tar.gz
+#wget https://zenodo.org/records/22880706/files/noHiC.tar.gz
+wget https://zenodo.org/records/24606690/files/noHiC.tar.gz
 wget https://zenodo.org/records/22880706/files/compleasm.tar.gz
 
 # Decompress the environments
