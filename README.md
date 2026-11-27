@@ -111,7 +111,7 @@ to scaffold is *A. thaliana* CAMA-C-2.
 To prepare the HiFi reads for this tutorial, run the following commands (**all needed tools have been installed in the noHiC environment**):
 
 ```bash
-conda activate /path/to/noHiC-Snakemake/workflow/envs/noHiC
+conda activate /path/to/noHiC-Snakemake/workflow/envs/noHiC # you can keep this environment active for the whole pipeline.
 wget -c -O ERR10084604.sra https://sra-pub-run-odp.s3.amazonaws.com/sra/ERR10084604/ERR10084604
 fasterq-dump --threads 25 ERR10084604.sra
 tgsfilter -i ERR10084604.fastq -o CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz -x hifi -t 24
@@ -154,9 +154,9 @@ The pipeline can be executed as follows (**All required arguments have been fill
 >If you use ONT reads, you can check [this repo](https://github.com/Clipman-Lab/ONT_NCBI_contamination) for ONT adapter sequences.
 
 ```bash
-# Assuming that you have all inputs in the current working directory
+# Assuming that you have all inputs in the current working directory.
 # Both "snakemake" and "noHiC" conda environments that have been setup in the "Requirements" section can be used to run the pipeline.
-# Activate one of the environment using "conda activate" before running the following command:
+# Activate one of the environments using "conda activate" before running the following command:
  
 snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
          --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi \
