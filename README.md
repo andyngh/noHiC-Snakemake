@@ -114,15 +114,15 @@ download the prebuilt binary of [TGSFilter](https://github.com/HuiyangYu/TGSFilt
 Then run the following commands:
 
 ```bash
-prefetch --max-size 200G ERR10084604
-fastq-dump --origfmt ./ERR10084604
+wget -c -O ERR10084604.sra https://sra-pub-run-odp.s3.amazonaws.com/sra/ERR10084604/ERR10084604
+fasterq-dump --threads 25 ERR10084604.sra
 tgsfilter -i ERR10084604.fastq -o CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz -x hifi -t 24
 ```
 
 ### Downloading the Kraken2 database
 
-In this tutorial, we use the `PlusPFP-16` database (16 GB). If you have more memory
-(e.g., > 250 GB), you can download the `core_nt` database
+In this tutorial, we use the small `PlusPFP-16` database (16 GB) for contig decontamination. If you have more RAM
+(e.g., > 316.2 GB), you can download the `core_nt` database
 [here](https://benlangmead.github.io/aws-indexes/k2).
 
 ```bash
