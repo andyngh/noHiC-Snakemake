@@ -111,6 +111,7 @@ to scaffold is *A. thaliana* CAMA-C-2.
 To prepare the HiFi reads for this tutorial, run the following commands (**all needed tools have been installed in the noHiC environment**):
 
 ```bash
+conda activate /path/to/noHiC-Snakemake/workflow/envs/noHiC
 wget -c -O ERR10084604.sra https://sra-pub-run-odp.s3.amazonaws.com/sra/ERR10084604/ERR10084604
 fasterq-dump --threads 25 ERR10084604.sra
 tgsfilter -i ERR10084604.fastq -o CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz -x hifi -t 24
@@ -136,7 +137,6 @@ tar -xzf k2_pluspfp_16_GB_20260626.tar.gz
 ### Executing the noHiC workflow
 
 ```bash
-conda activate snakemake
 # Change to your working directory containing the example A. thaliana input files (not the noHiC-Snakemake directory)
 cd /path/to/your/working/directory
 ```
@@ -155,6 +155,9 @@ The pipeline can be executed as follows (**All required arguments have been fill
 
 ```bash
 # Assuming that you have all inputs in the current working directory
+# Both "snakemake" and "noHiC" conda environments that have been setup in the "Requirements" section can be used to run the pipeline.
+# Activate one of the environment using "conda activate" before running the following command:
+ 
 snakemake --snakefile /path/to/noHiC-Snakemake/workflow/Snakefile \
          --config reads=CAMA-C-2-hifi_reads.ALL.trimmed.fastq.gz cov=69 prefix=CAMA-C-2 platform=hifi \
                   pk_gbz=arabidopsis_pgMC.full.gbz pk_hapl=arabidopsis_pgMC.full.hapl \
